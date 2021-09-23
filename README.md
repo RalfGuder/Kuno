@@ -1,4 +1,4 @@
-# Kuno
+# Kuno der Ritter (1996)
 
 ![grafik](https://user-images.githubusercontent.com/45797275/134504057-41db0535-d03a-469d-b6f6-c6739af894d2.png)
 
