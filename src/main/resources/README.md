@@ -1,7 +1,11 @@
 # Kuno Sprites 24 x 21
 
 |Pos  | Bezeichnung       |
+<<<<<<< HEAD
 |:----|:------------------|
+=======
+|:----|-------------------|
+>>>>>>> refs/remotes/origin/main
 |0,  0| Kuno Beginn 1     |
 |0,  1| Kuno Beginn 2     |
 |0,  2| Kuno Beginn 3     |
