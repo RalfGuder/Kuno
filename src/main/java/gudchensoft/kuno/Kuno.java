@@ -1,10 +1,18 @@
 package gudchensoft.kuno;
 
+import java.io.InputStream;
+
+import org.newdawn.slick.Animation;
 import org.newdawn.slick.AppGameContainer;
 import org.newdawn.slick.BasicGame;
+import org.newdawn.slick.Color;
 import org.newdawn.slick.GameContainer;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
+import org.newdawn.slick.ImageBuffer;
 import org.newdawn.slick.SlickException;
+import org.newdawn.slick.SpriteSheet;
+import org.newdawn.slick.opengl.ImageDataFactory;
 
 /**
  * 
@@ -12,6 +20,8 @@ import org.newdawn.slick.SlickException;
  *
  */
 public class Kuno  extends BasicGame{
+
+	private Animation begin;
 
 	/**
 	 * Kuno-Spiel
@@ -22,7 +32,12 @@ public class Kuno  extends BasicGame{
 
 	@Override
 	public void init(GameContainer container) throws SlickException {
-		// TODO Auto-generated method stub
+		int d = 100;
+		InputStream is = Kuno.class.getResourceAsStream("/kuno-sprites");
+		is = java.util.Base64.getDecoder().wrap(is);
+		Image kuno = new Image(is, "Kuno Sprites", false);
+		SpriteSheet ss = new SpriteSheet(kuno, 24, 21);
+		begin = new Animation(ss, new int[] {0, 0, 1, 0, 2, 0, 3, 0}, new int[] {d, d, d, d});
 		
 	}
 
@@ -34,7 +49,7 @@ public class Kuno  extends BasicGame{
 
 	@Override
 	public void render(GameContainer container, Graphics g) throws SlickException {
-		// TODO Auto-generated method stub
+		begin.draw(160, 100);
 		
 	}
 
