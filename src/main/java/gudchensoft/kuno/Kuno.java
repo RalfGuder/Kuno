@@ -61,8 +61,14 @@ public class Kuno  extends BasicGame{
 	 */
 	public static void main(String[] args) {
 		try {
-			AppGameContainer game = new AppGameContainer(new Kuno(), 320, 200, false);
-			game.start();
+			AppGameContainer game = new AppGameContainer(new Kuno());
+	          game.setMaximumLogicUpdateInterval(60);
+	          game.setDisplayMode(640, 480, false);
+	          game.setTargetFrameRate(60);
+	          game.setAlwaysRender(true);
+	          game.setVSync(true);
+	          game.setShowFPS(false);
+	          game.start();
 		} catch (SlickException e) {
 			e.printStackTrace();
 		}
