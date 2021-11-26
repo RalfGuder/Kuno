@@ -9,6 +9,7 @@ import com.jme3.scene.control.AbstractControl;
 
 public class PlayerControl extends AbstractControl {
     private int screenWidth, screenHeight;
+    private ParticleManager particleManager;
             
 //    is the player currently moving?
     public boolean up,down,left,right;
@@ -18,9 +19,10 @@ public class PlayerControl extends AbstractControl {
     private float lastRotation;
     
     
-    public PlayerControl(int width, int height) {
+    public PlayerControl(int width, int height, ParticleManager particleManager) {
         this.screenWidth = width;
         this.screenHeight = height;
+        this.particleManager = particleManager;
     }
     
     @Override
@@ -52,6 +54,10 @@ public class PlayerControl extends AbstractControl {
             spatial.rotate(0,0,-lastRotation + 0);
             lastRotation=0;
         }
+        
+        if (up || down || left || right) {
+            particleManager.makeExhaustFire(spatial.getLocalTranslation(), lastRotation);
+        }
     }
 
     @Override
@@ -63,5 +69,9 @@ public class PlayerControl extends AbstractControl {
         down = false;
         left = false;
         right = false;
+    }
+    
+    public void applyGravity(Vector3f gravity) {
+        spatial.move(gravity);
     }
 }
