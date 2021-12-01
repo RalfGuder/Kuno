@@ -13,11 +13,14 @@ import org.newdawn.slick.SpriteSheet;
 
 /**
  * 
- * @author 10170328
+ * @author Ralf Guder
  *
  */
 public class Kuno  extends BasicGame{
-
+	
+	private static final int SCREEN_HIGH = 200;
+	private static final int SCREEN_WIDTH = 320;
+	private Image background;
 	private Animation begin;
 
 	/**
@@ -29,6 +32,8 @@ public class Kuno  extends BasicGame{
 
 	@Override
 	public void init(GameContainer container) throws SlickException {
+		background = new Image("hintergrund.png");
+		
 		int d = 100;
 		InputStream is = Kuno.class.getResourceAsStream("/kuno-sprites");
 		is = java.util.Base64.getDecoder().wrap(is);
@@ -46,6 +51,7 @@ public class Kuno  extends BasicGame{
 
 	@Override
 	public void render(GameContainer container, Graphics g) throws SlickException {
+		background.draw(0, 0);
 		begin.draw(160, 100);
 		
 	}
@@ -60,7 +66,7 @@ public class Kuno  extends BasicGame{
 		try {
 			AppGameContainer game = new AppGameContainer(new Kuno());
 	          game.setMaximumLogicUpdateInterval(60);
-	          game.setDisplayMode(640, 480, false);
+	          game.setDisplayMode(SCREEN_WIDTH, SCREEN_HIGH, false);
 	          game.setTargetFrameRate(60);
 	          game.setAlwaysRender(true);
 	          game.setVSync(true);
