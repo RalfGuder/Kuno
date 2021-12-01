@@ -1,7 +1,5 @@
 package gudchensoft.kuno;
 
-import java.io.InputStream;
-
 import org.newdawn.slick.Animation;
 import org.newdawn.slick.BasicGame;
 import org.newdawn.slick.GameContainer;
