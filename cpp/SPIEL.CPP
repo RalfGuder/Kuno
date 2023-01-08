@@ -1,7 +1,7 @@
 /***************************************************************************/
 /* S P I E L . C P P                                                       */
 /*-------------------------------------------------------------------------*/
-/* Aufgabe       :  Quellcode fÅr alle Spiel-Routinen fÅr                  */
+/* Aufgabe       :  Quellcode f¬År alle Spiel-Routinen f¬År                  */
 /*                  K U N O   -   D E R   R I T T E R			   */
 /*-------------------------------------------------------------------------*/
 /* Autor         :  Ralf Guder						   */
@@ -23,8 +23,8 @@
 #include <dos.h>
 #include <alloc.h>
 #include "types.h"
-#include "LEVEL.CPP"                  /* enthÑlt die Level des Spieles     */
-#include "SPRITEDA.CPP"      /* enthÑlt die Daten der Sprites des Spieles  */
+#include "LEVEL.CPP"                  /* enth√§lt die Level des Spieles     */
+#include "SPRITEDA.CPP"      /* enth√§lt die Daten der Sprites des Spieles  */
 #include "KUNO.H"
 
 
@@ -32,12 +32,12 @@
 
 
 /*   Modul "FILEWORK.CPP"                                                  */
-void Spriteladen(unsigned char *, 	/* LÑdt ein Sprite in den Speicher */
+void Spriteladen(unsigned char *, 	/* L‚Äûdt ein Sprite in den Speicher */
 		 unsigned char *);
-void Charladen (PBYTE,PBYTE,BYTE);         /* LÑdt die Leveltextur            */
+void Charladen (PBYTE,PBYTE,BYTE);         /* L‚Äûdt die Leveltextur            */
 void Levelladen(int,unsigned char far*,
 		    unsigned int *);
-void TGA_laden(char *);			/* lÑdt ein VGA-Bild (.tga)        */
+void TGA_laden(char *);			/* l‚Äûdt ein VGA-Bild (.tga)        */
 void Bild_aufblenden(void);             /* einblenden des Bildes           */
 void Bild_ausblenden(void);             /* blenden das Bild aus            */
 
@@ -45,12 +45,12 @@ void Bild_ausblenden(void);             /* blenden das Bild aus            */
 /*   Modul "ADLIB.CPP"							   */
 void Adlibvoice(unsigned int,   	/* initialisiert eine Stimme       */
 		unsigned char*);
-void Adlibreset(void);			/* zurÅcksetzen der Karte          */
+void Adlibreset(void);			/* zur¬Åcksetzen der Karte          */
 void StimmeDaten(unsigned char,
-		 unsigned int *);	/* Åbergibt Stimmdaten  	   */
+		 unsigned int *);	/* ¬Åbergibt Stimmdaten  	   */
 void StimmeActiv(unsigned char);
 void LiedDaten(unsigned char,
-		 unsigned int *);	/* Åbergibt Lieddaten  	   	   */
+		 unsigned int *);	/* ¬Åbergibt Lieddaten  	   	   */
 void LiedActiv(unsigned char);
 void StimmeDeactiv(unsigned char);
 void Stimme (unsigned char);
@@ -60,20 +60,20 @@ void Stimme (unsigned char);
 
 
 /*-- Module-Variablen -----------------------------------------------------*/
-CHAR  Note			       ;/* enthÑlt den ZÑhlwert bei Timer  */
-BYTE  scan			       ;/* enthÑlt Scancode der Tastatur   */
-BYTE  scanalt=0			       ;/* enthÑlt alten Scancode          */
+CHAR  Note			       ;/* enth‚Äûlt den Z‚Äûhlwert bei Timer  */
+BYTE  scan			       ;/* enth‚Äûlt Scancode der Tastatur   */
+BYTE  scanalt=0			       ;/* enth‚Äûlt alten Scancode          */
 
 WORD DUMMY=0;
 //INT   Kuno=0			       ;/* Kuno ist Sprite Nummer 0        */
 INT   KEnde   =0		       ;/* Endverhalten von Kuno	   */
 INT   KBeginn =0;			/* Startverhalten von Kuno         */
-INT   KSprung =0;			/* SprungzÑhler                    */
-INT   KFall   =0;			/* Sprung und FallzÑhler           */
+INT   KSprung =0;			/* Sprungz‚Äûhler                    */
+INT   KFall   =0;			/* Sprung und Fallz‚Äûhler           */
 INT   KPult   =0;			/* Sprung  mit Katapult            */
 BYTE  KZustand=0;			/* Bewegungsphase Kuno             */
 
-PBYTE KPhasen[19];			/* Array fÅr Kunos BewegungsPhasen */
+PBYTE KPhasen[19];			/* Array f¬År Kunos BewegungsPhasen */
 
 PBYTE HEXE[4];				/* Bewegungphasen Hexe             */
 
@@ -104,7 +104,7 @@ int GameoverZahl[]=
 PBYTE Leben     ="0"		       ;/* Anzahl der Leben		   */
 int Wappen =0;				/* Anzahl der Wappen		   */
 int Schwert=0;				/* Anzahl der Schwerter		   */
-int Diamanten=0;			/* Anzahl der SchlÅssel		   */
+int Diamanten=0;			/* Anzahl der Schl¬Åssel		   */
 int Keyrot=0;
 int Keygruen=0;
 int Keyblau=0;
@@ -157,7 +157,7 @@ unsigned char*ObjTab[]=			/* Objektzuordnung beim Raum-      */
  };
 
 int Objekte[19*(4)*10];			/* Spielfeld bewegliche Objekte    */
-int Objekt;				/* ZÑhlvariable fÅr Monster        */
+int Objekt;				/* Z‚Äûhlvariable f¬År Monster        */
 
 BYTE SPhasen []=              		/* Zuordnung der einzelnen         */
 { 1,0,3,2,4,5,6,7,9,8 }		       ;/* Bewegungsphasen der Sprites     */
@@ -170,29 +170,29 @@ BYTE  Seite_schreiben		       ;/* Seite, die gerade bearb. wird   */
 // BYTE  Seite_Reserve=3               ;/* Reserve-Bildschirmseite         */
 // BYTE  Seite_hinten=2      	       ;/* Hintergrundseite                */
 INT   Zeit = 10			       ;/* Wartekonstante                  */
-INT   Wartezeit			       ;/* WartezÑhler fÅr Timerinterrupt  */
+INT   Wartezeit			       ;/* Wartez‚Äûhler f¬År Timerinterrupt  */
 INT   SpKollision		       ;/* Kollisionsvaraible Kuno         */
 INT   SpUntergrund		       ;/* Untergrundvariable Kuno	   */
-PBYTE Zonenname[]={			/* enthÑlt die Beschreibungen der  */
+PBYTE Zonenname[]={			/* enth‚Äûlt die Beschreibungen der  */
 "Burggraben","Burggraben",		/*  einzelnen Level-Zonen	   */
 "100 Blumen","Secret one",
 "Wappenraum","Pallas    ",
-"KÅche     ","          ",
+"K¬Åche     ","          ",
 "          ","KC 85     ", }			       ;
 
 
 /***************************************************************************/
-/* Interrupt - Routine fÅr den Timer					   */
+/* Interrupt - Routine f¬År den Timer					   */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine							   */
-/* Ausgabe : Wartezeit = ZÑhler wird pro Durchlauf ums 1 erhîht            */
+/* Ausgabe : Wartezeit = Z‚Äûhler wird pro Durchlauf ums 1 erh‚Äùht            */
 /***************************************************************************/
 void interrupt timehdl(__CPPARGS)
 {
- INT x;					/* SchleifenzÑhler		   */
-/*-- WartezÑhler um 1 erhîhen						   */
+ INT x;					/* Schleifenz‚Äûhler		   */
+/*-- Wartez‚Äûhler um 1 erh‚Äùhen						   */
  Wartezeit++;
-/*-- NotenzÑhler heruntersetzen						   */
+/*-- Notenz‚Äûhler heruntersetzen						   */
  Note--;
  if (Note<0)
  {
@@ -202,7 +202,7 @@ void interrupt timehdl(__CPPARGS)
  }
 }
 /***************************************************************************/
-/* Interrupt - Routine fÅr die "Spiel-Tastatur"				   */
+/* Interrupt - Routine f¬År die "Spiel-Tastatur"				   */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine							   */
 /* Ausgabe : Variable TASTE wird als Flag benutzt			   */
@@ -212,8 +212,8 @@ void interrupt handler(__CPPARGS)
 /*-- Scan-Code holen							   */
  scan =inportb(0x60)		       ;
  if (scan==scanalt) goto SEnde	       ;/* nur bei neuem Scancode	   */
- scanalt=scan			       ;/* Scancode Åbernehmen		   */
- if (scan<128) goto Make	       ;/* Taste gedrÅckt oder losgelassen */
+ scanalt=scan			       ;/* Scancode ¬Åbernehmen		   */
+ if (scan<128) goto Make	       ;/* Taste gedr¬Åckt oder losgelassen */
 /*-- Taste losgelassen						 	   */
    scan=scan-128;
    if (scan==1 ) Taste=Taste^0x20;	/* ESC   losgelassen		   */
@@ -224,10 +224,10 @@ void interrupt handler(__CPPARGS)
    if (scan==72) Taste=Taste^0x08;	/* HOCH 			   */
    if (scan==77) Taste=Taste^0x02;	/* RECHTS                          */
    if (scan==80) Taste=Taste^0x04;	/* TIEF				   */
-   goto SEnde;                          /* und zurÅck			   */
+   goto SEnde;                          /* und zur¬Åck			   */
 
 Make:
-/*-- Taste gedrÅckt                                                        */
+/*-- Taste gedr¬Åckt                                                        */
    if (scan==1 ) Taste=Taste|0x20;
    if (scan==57) Taste=Taste|0x80;
    if (scan==29) Taste=Taste|0x40;
@@ -267,9 +267,9 @@ void Kuno_Steuerung( void )
  if ((KSprung!=0)||(KPult!=0))		/* Kuno springt			   */
  {
   KFall++;
-  if (KFall>6)	                	/* maximale Sprunghîhe             */
+  if (KFall>6)	                	/* maximale Sprungh‚Äùhe             */
    {KSprung=0;}
-//    Taste=Taste&0x7F;}			/* SPACE zurÅcksetzen		   */
+//    Taste=Taste&0x7F;}			/* SPACE zur¬Åcksetzen		   */
   if ((Taste&0x80)!=0x80) KSprung=0;    /* Sprung nur, wenn SPACE-Druck    */
   KunoY=KunoY-4;
   if (KZustand<4)
@@ -304,7 +304,7 @@ void Kuno_Steuerung( void )
    if ((KZustand<8)||(KZustand>9))      /* Kuno geht noch keine Leiter     */
 	KZustand=8;                     /*  hoch                           */
   }
- KZustand=SPhasen[KZustand];		/* nÑchste Phase holen     	   */
+ KZustand=SPhasen[KZustand];		/* n‚Äûchste Phase holen     	   */
  return;
  }
 
@@ -319,7 +319,7 @@ void Kuno_Steuerung( void )
    KunoY=KunoY+4;
    if ((KZustand<8)||(KZustand>9))     /* Kuno geht noch keine Leiter     */
 	KZustand=8;                     /*  hoch                           */
-   KZustand=SPhasen[KZustand];		/* nÑchste Phase holen     	   */
+   KZustand=SPhasen[KZustand];		/* n‚Äûchste Phase holen     	   */
   }
   return;
  }
@@ -327,19 +327,19 @@ void Kuno_Steuerung( void )
 /*-- Abfrage Cursor-Taste LINKS -------------------------------------------*/
  if ((Taste&0x01) == 0x01)		/* Taste links			   */
  {
-  if (KZustand>1) KZustand=0;		/* lÑuft schon nach links          */
+  if (KZustand>1) KZustand=0;		/* l‚Äûuft schon nach links          */
   KunoX=KunoX-4;
-  KZustand=SPhasen[KZustand];		/* nÑchste Phase holen             */
-  if (KFall!=0) KZustand=4;		/* Kuno fÑllt nach links	   */
+  KZustand=SPhasen[KZustand];		/* n‚Äûchste Phase holen             */
+  if (KFall!=0) KZustand=4;		/* Kuno f‚Äûllt nach links	   */
   return;
  }
  if ((Taste&0x02) == 0x02)              /* Taste rechts			   */
  {
-  if ((KZustand<2)||(KZustand>3))       /* lÑuft schon nach rechts         */
+  if ((KZustand<2)||(KZustand>3))       /* l‚Äûuft schon nach rechts         */
 	KZustand=2;
   KunoX=KunoX+4;
-  KZustand=SPhasen[KZustand];		/* nÑchste Phase holen     	   */
-  if (KFall!=0) KZustand=5;		/* Kuno fÑllt nach rechts          */
+  KZustand=SPhasen[KZustand];		/* n‚Äûchste Phase holen     	   */
+  if (KFall!=0) KZustand=5;		/* Kuno f‚Äûllt nach rechts          */
   return;
  }
 /*-- keine Taste und kein Sprung				           */
@@ -363,7 +363,7 @@ void Kuno_Steuerung( void )
 unsigned char *Level_Zeichen (unsigned char Zeichen)
 {
  unsigned char *Punkt;			        /* Zeiger                  */
- int xb;				  	/* ZÑhler		   */
+ int xb;				  	/* Z‚Äûhler		   */
 
  for (xb=0;xb<37;xb++)
  {
@@ -387,7 +387,7 @@ unsigned char *Level_Zeichen (unsigned char Zeichen)
 BYTE Level_Attribut(BYTE Zeichen)
 {
  BYTE Punkt;
- int xb;				  	/* ZÑhler		   */
+ int xb;				  	/* Z‚Äûhler		   */
 
  for (xb=0;xb<37;xb++)
  {
@@ -430,8 +430,8 @@ void Level_zeigen (void)
  PBYTE RaumNummer ="0"		       ;/* Zeiger auf die RaumNummer	   */
  int xb=0;				/* X-Koord BS			   */
  int yb=0;				/* Y-Koord BS			   */
- int xz,yz;				/* 8x8 ZÑhler		           */
- int xt;				/* TabellenzÑhler		   */
+ int xz,yz;				/* 8x8 Z‚Äûhler		           */
+ int xt;				/* Tabellenz‚Äûhler		   */
  unsigned char Zeichen;			/* Levelzeichen			   */
  unsigned char *Punkt;			/* Pixel			   */
 
@@ -444,7 +444,7 @@ void Level_zeigen (void)
 /* LevelDaten=LevelNr[Level];*/
 
 /*-- Zeichenschleife                                                       */
- for (yb=0;yb<19;yb++)			/* Levelhîhe			   */
+ for (yb=0;yb<19;yb++)			/* Levelh‚Äùhe			   */
  {
   for (xb=0;xb<31;xb++)			/* Levelbreite			   */
   {
@@ -484,7 +484,7 @@ void Level_zeigen (void)
  Text_Ausgabe (Zonenname[(Level*9)+Raum],10,1,76,191);
 
 
-/*-- auf Bearbeitungs-Seite zurÅckschalten und zurÅck                      */
+/*-- auf Bearbeitungs-Seite zur¬Åckschalten und zur¬Åck                      */
  setpage(Seite_schreiben);
 
 /*-- unbenutzten Hintergrund kopieren                                      */
@@ -552,7 +552,7 @@ void Bild_zeigen(void)
 void Power(int Pwr)
 {
  unsigned char Punkt;			/* Farbe des Powerbalkens          */
- int x,z;				/* ZÑhlvariablen		   */
+ int x,z;				/* Z‚Äûhlvariablen		   */
  Kraft=Kraft+Pwr;
  if (Kraft>45) Kraft=45;
  if (Kraft<=0)
@@ -605,9 +605,9 @@ void Sword (int Swd)
  unsigned char *Text="  ";			/* Zeiger auf Ausgabetext  */
  int alt;					/* Zwischenspeicher        */
 
-/*-- neue Schwertanzahl berechnen und ÅberprÅfen			   */
+/*-- neue Schwertanzahl berechnen und ¬Åberpr¬Åfen			   */
  Schwert=Schwert+Swd;				/* neue Schwertanzahl	   */
- if (Schwert>=100) Schwert=99;			/* grî·er als 99?	   */
+ if (Schwert>=100) Schwert=99;			/* gr‚Äù√°er als 99?	   */
  if (Schwert<0)    Schwert=0;			/* kleiner als 0?	   */
 
 /*-- Schwertanzahl retten						   */
@@ -619,7 +619,7 @@ void Sword (int Swd)
  if (Schwert>=0 ) *(unsigned char*)(Text+1)=(Schwert/1 )+48;
  Schwert=Schwert-((Schwert/1 )*1 );
 
-/*-- Schwertanzahl zurÅckholen						   */
+/*-- Schwertanzahl zur¬Åckholen						   */
  Schwert=alt;
 
 /*-- Umschalten auf Hintergrundseite und Textausgabe			   */
@@ -627,7 +627,7 @@ void Sword (int Swd)
  Text_Ausgabe(Text,2,1,292,80);
  setpage(Seite_schreiben);
 
-/*-- zurÅck zum Aufrufer						   */
+/*-- zur¬Åck zum Aufrufer						   */
  return;
 };
 
@@ -643,9 +643,9 @@ void Diamant (int Dia)
  unsigned char *Text="  ";			/* Zeiger auf Ausgabetext  */
  int alt;					/* Zwischenspeicher        */
 
-/*-- neue Schwertanzahl berechnen und ÅberprÅfen			   */
+/*-- neue Schwertanzahl berechnen und ¬Åberpr¬Åfen			   */
  Diamanten=Diamanten+Dia;			/* neue Diamantenanzahl    */
- if (Diamanten>=100)				/* grî·er als 99?	   */
+ if (Diamanten>=100)				/* gr‚Äù√°er als 99?	   */
  {
   Diamanten=0;
   *(char*)Leben=*(char*)Leben+1;
@@ -667,7 +667,7 @@ void Diamant (int Dia)
  if (Diamanten>=0 ) *(unsigned char*)(Text+1)=(Diamanten/1 )+48;
  Diamanten=Diamanten-((Diamanten/1 )*1 );
 
-/*-- Diamantenanzahl zurÅckholen					   */
+/*-- Diamantenanzahl zur¬Åckholen					   */
  Diamanten=alt;
 
 /*-- Umschalten auf Hintergrundseite und Textausgabe			   */
@@ -675,7 +675,7 @@ void Diamant (int Dia)
  Text_Ausgabe(Text,2,1,292,124);
  setpage(Seite_schreiben);
 
-/*-- zurÅck zum Aufrufer						   */
+/*-- zur¬Åck zum Aufrufer						   */
  return;
 };
 
@@ -691,9 +691,9 @@ void Wapp (int Wpp)
  unsigned char *Text="  ";			/* Zeiger auf Ausgabetext  */
  int alt;					/* Zwischenspeicher        */
 
-/*-- neue Wappenanzahl berechnen und ÅberprÅfen				   */
+/*-- neue Wappenanzahl berechnen und ¬Åberpr¬Åfen				   */
  Wappen=Wappen+Wpp;				/* neue Wappenanzahl	   */
- if (Wappen>=100) Wappen=99;			/* grî·er als 99?	   */
+ if (Wappen>=100) Wappen=99;			/* gr‚Äù√°er als 99?	   */
  if (Wappen<0)    Wappen=0;			/* kleiner als 0?	   */
 
 /*-- Wappenanzahl retten						   */
@@ -705,7 +705,7 @@ void Wapp (int Wpp)
  if (Wappen>=0 ) *(unsigned char*)(Text+1)=(Wappen/1 )+48;
  Wappen=Wappen-((Wappen/1 )*1 );
 
-/*-- Wappenanzahl zurÅckholen						   */
+/*-- Wappenanzahl zur¬Åckholen						   */
  Wappen=alt;
 
 
@@ -714,12 +714,12 @@ void Wapp (int Wpp)
  Text_Ausgabe(Text,2,1,292,102);
  setpage(Seite_schreiben);
 
-/*-- zurÅck zum Aufrufer						   */
+/*-- zur¬Åck zum Aufrufer						   */
  return;
 };
 
 /***************************************************************************/
-/* Key : Anzeigen und Bearbeiten der SchlÅssel                             */
+/* Key : Anzeigen und Bearbeiten der Schl¬Åssel                             */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine					                   */
 /* Ausgabe : keine                                                         */
@@ -743,13 +743,13 @@ void Key (void)
  Text_Ausgabe(Text,4,1,196,170);
  setpage(Seite_schreiben);
 
-/*-- zurÅck zum Aufrufer						   */
+/*-- zur¬Åck zum Aufrufer						   */
  return;
 };
 /***************************************************************************/
-/* Punkte : erhîht die Punktanzahl und gibt sie auf den BS                 */
+/* Punkte : erh‚Äùht die Punktanzahl und gibt sie auf den BS                 */
 /*-------------------------------------------------------------------------*/
-/* Eingabe : Pkt = Anzahl der Punkte, die erhîht werden sollen             */
+/* Eingabe : Pkt = Anzahl der Punkte, die erh‚Äùht werden sollen             */
 /* Ausgabe : keine                                                         */
 /***************************************************************************/
 void Punkte (int Pkt)
@@ -783,9 +783,9 @@ void Punkte (int Pkt)
 };
 
 /***************************************************************************/
-/* Kuno_Reak : Reaktionsunterprogramm fÅr Kuno                             */
+/* Kuno_Reak : Reaktionsunterprogramm f¬År Kuno                             */
 /*-------------------------------------------------------------------------*/
-/* Eingabe : Kollision = Kollisionscode fÅr Kuno                           */
+/* Eingabe : Kollision = Kollisionscode f¬År Kuno                           */
 /* Ausgabe : keine                                                         */
 /***************************************************************************/
 VOID Kuno_Reak()
@@ -911,8 +911,8 @@ VOID Kuno_Reak()
    goto Reak1;
   }
 
-/*-- SchlÅssel-------------------------------------------------------------*/
-  if (Objekt==17)				/* SchlÅssel blau          */
+/*-- Schl¬Åssel-------------------------------------------------------------*/
+  if (Objekt==17)				/* Schl¬Åssel blau          */
   {
    if (Keyblau==0)			        /* wenn noch keinen Key    */
    {
@@ -924,7 +924,7 @@ VOID Kuno_Reak()
    }
    goto Reak1;
   }
-  if (Objekt==18)				/* SchlÅssel gelb          */
+  if (Objekt==18)				/* Schl¬Åssel gelb          */
   {
    if (Keygelb==0)			        /* wenn noch keinen Key    */
    {
@@ -936,7 +936,7 @@ VOID Kuno_Reak()
    }
    goto Reak1;
   }
-  if (Objekt==19)				/* SchlÅssel rot          */
+  if (Objekt==19)				/* Schl¬Åssel rot          */
   {
    if (Keyrot==0)			        /* wenn noch keinen Key    */
    {
@@ -948,7 +948,7 @@ VOID Kuno_Reak()
    }
    goto Reak1;
   }
-  if (Objekt==20)				/* SchlÅssel grÅn          */
+  if (Objekt==20)				/* Schl¬Åssel gr¬Ån          */
   {
    if (Keygruen==0)			        /* wenn noch keinen Key    */
    {
@@ -961,72 +961,72 @@ VOID Kuno_Reak()
    goto Reak1;
   }
 /*-- Tore -----------------------------------------------------------------*/
-  if (Objekt==31)				/* Tor grÅn                */
+  if (Objekt==31)				/* Tor gr¬Ån                */
   {
-   if (Keygruen==1)			        /* wenn grÅnen      Key    */
+   if (Keygruen==1)			        /* wenn gr¬Ånen      Key    */
    {
-    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor lîschen             */
+    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor l‚Äùschen             */
     SpriteDeactiv(SpKollision);
     Keygruen=0;
     Key();
     goto Reak1;
    }
-   KunoX=KunoXalt;		  /* alten Horizontalwert zurÅcklesen	   */
-   if (KSprung!=0) KSprung=0;     /* SprÅnge beenden		           */
+   KunoX=KunoXalt;		  /* alten Horizontalwert zur¬Åcklesen	   */
+   if (KSprung!=0) KSprung=0;     /* Spr¬Ånge beenden		           */
    if (KPult  !=0) KPult  =0;
    if (KFall==0)  KunoY=KunoYalt; /* wenn kein Fall vorliegt, dann auch    */
-				  /* alten Vertikalwert zurÅcklesen        */
+				  /* alten Vertikalwert zur¬Åcklesen        */
    goto Reak1;
   }
   if (Objekt==28)				/* Tor blau                */
   {
    if (Keyblau==1)			        /* wenn blauen      Key    */
    {
-    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor lîschen             */
+    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor l‚Äùschen             */
     SpriteDeactiv(SpKollision);
     Keyblau=0;
     Key();
     goto Reak1;
    }
-   KunoX=KunoXalt;		  /* alten Horizontalwert zurÅcklesen	   */
-   if (KSprung!=0) KSprung=0;     /* SprÅnge beenden		           */
+   KunoX=KunoXalt;		  /* alten Horizontalwert zur¬Åcklesen	   */
+   if (KSprung!=0) KSprung=0;     /* Spr¬Ånge beenden		           */
    if (KPult  !=0) KPult  =0;
    if (KFall==0)  KunoY=KunoYalt; /* wenn kein Fall vorliegt, dann auch    */
-				  /* alten Vertikalwert zurÅcklesen        */
+				  /* alten Vertikalwert zur¬Åcklesen        */
    goto Reak1;
   }
   if (Objekt==29)				/* Tor gelb                */
   {
    if (Keygelb==1)			        /* wenn gelben      Key    */
    {
-    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor lîschen             */
+    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor l‚Äùschen             */
     SpriteDeactiv(SpKollision);
     Keygelb=0;
     Key();
     goto Reak1;
    }
-   KunoX=KunoXalt;		  /* alten Horizontalwert zurÅcklesen	   */
-   if (KSprung!=0) KSprung=0;     /* SprÅnge beenden		           */
+   KunoX=KunoXalt;		  /* alten Horizontalwert zur¬Åcklesen	   */
+   if (KSprung!=0) KSprung=0;     /* Spr¬Ånge beenden		           */
    if (KPult  !=0) KPult  =0;
    if (KFall==0)  KunoY=KunoYalt; /* wenn kein Fall vorliegt, dann auch    */
-				  /* alten Vertikalwert zurÅcklesen        */
+				  /* alten Vertikalwert zur¬Åcklesen        */
    goto Reak1;
   }
   if (Objekt==30)				/* Tor rot                 */
   {
    if (Keyrot==1)			        /* wenn roten       Key    */
    {
-    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor lîschen             */
+    Objekte[(SpKollision*4)+(Raum*19*4)]=0; 	/* Tor l‚Äùschen             */
     SpriteDeactiv(SpKollision);
     Keyrot=0;
     Key();
     goto Reak1;
    }
-   KunoX=KunoXalt;		  /* alten Horizontalwert zurÅcklesen	   */
-   if (KSprung!=0) KSprung=0;     /* SprÅnge beenden		           */
+   KunoX=KunoXalt;		  /* alten Horizontalwert zur¬Åcklesen	   */
+   if (KSprung!=0) KSprung=0;     /* Spr¬Ånge beenden		           */
    if (KPult  !=0) KPult  =0;
    if (KFall==0)  KunoY=KunoYalt; /* wenn kein Fall vorliegt, dann auch    */
-				  /* alten Vertikalwert zurÅcklesen        */
+				  /* alten Vertikalwert zur¬Åcklesen        */
    goto Reak1;
   }
 
@@ -1054,7 +1054,7 @@ VOID Kuno_Reak()
   if (Objekt==33)				/* Schalter    		   */
   {
    int xz, xb;
-   if ((Taste&0x40)==0x40)                      /* CTRL gedrÅckt ?         */
+   if ((Taste&0x40)==0x40)                      /* CTRL gedr¬Åckt ?         */
    {
     Objekte[(SpKollision*4)+(Raum*19*4+1)]=1;
     SpriteDaten(SpKollision,SCHALTER2);
@@ -1083,7 +1083,7 @@ VOID Kuno_Reak()
 /*-- Exit-Schild-----------------------------------------------------------*/
   if (Objekt==22)				/* "EXIT"                  */
   {
-   Taste=Taste&0x7F		       	       ;/* SPACE zurÅcksetzen      */
+   Taste=Taste&0x7F		       	       ;/* SPACE zur¬Åcksetzen      */
    Raum=0                                      ;/* Anfangsraum im neuen    */
 						/* Level                   */
    Level=Level++			       ;
@@ -1101,12 +1101,12 @@ Reak1:
  }
  SpKollision=SpKollAlt;
 
-/*-- TÅr zum nÑchsten Raum                                                 */
- if ((SpKollision&0x20)==0x20)	   	/* TÅr zum nÑchsten Raum   	   */
+/*-- T¬År zum n‚Äûchsten Raum                                                 */
+ if ((SpKollision&0x20)==0x20)	   	/* T¬År zum n‚Äûchsten Raum   	   */
  {
-  Taste=Taste&0x7F		       ;/* SPACE zurÅcksetzen		   */
+  Taste=Taste&0x7F		       ;/* SPACE zur¬Åcksetzen		   */
   Raum=Tuerkollision();
-  if (KunoX<8)				/* TÅr links		   	   */
+  if (KunoX<8)				/* T¬År links		   	   */
   {
    KunoX=KunoX+220;
   }
@@ -1131,13 +1131,13 @@ Wechsel1:
 /*-- Spielrand                                                             */
  if ((SpKollision&0x40)==0x40)
  {
-  Taste=Taste&0x7F		       ;/* SPACE zurÅcksetzen		   */
-  KunoX=KunoXalt		       ;/* alten Horizontalwert zurÅcklesen*/
-  if (KSprung!=0) KSprung=0	       ;/* SprÅnge beenden		   */
+  Taste=Taste&0x7F		       ;/* SPACE zur¬Åcksetzen		   */
+  KunoX=KunoXalt		       ;/* alten Horizontalwert zur¬Åcklesen*/
+  if (KSprung!=0) KSprung=0	       ;/* Spr¬Ånge beenden		   */
   if (KPult  !=0) KPult  =0	       ;
   if (KFall==0)  KunoY=KunoYalt	       ;/* wenn kein Fall vorliegt, 	   */
 					/* dann auch alten Vertikalwert    */
-					/* zurÅcklesen         		   */
+					/* zur¬Åcklesen         		   */
 
   return;
  }
@@ -1189,7 +1189,7 @@ void Band_rechts(int xz)
  return;
 };
 /***************************************************************************/
-/* Blume : Funktion fÅr die einzelnen Phasen der Feuerblumen               */
+/* Blume : Funktion f¬År die einzelnen Phasen der Feuerblumen               */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine						     	   */
 /* Ausgabe : keine							   */
@@ -1211,7 +1211,7 @@ void Blume (int xz)
 };
 
 /***************************************************************************/
-/* Fall : Funktion fÅr die einzelnen Phasen des Wasserfalls                */
+/* Fall : Funktion f¬År die einzelnen Phasen des Wasserfalls                */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine						     	   */
 /* Ausgabe : keine							   */
@@ -1230,7 +1230,7 @@ void Fall (int xz)
  return;
 };
 /***************************************************************************/
-/* Wasser : Funktion fÅr die einzelnen Phasen des Wassers                  */
+/* Wasser : Funktion f¬År die einzelnen Phasen des Wassers                  */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : Spritenummer       				     	   */
 /* Ausgabe : keine							   */
@@ -1260,7 +1260,7 @@ VOID Wasser (INT xz)
 };
 
 /***************************************************************************/
-/* Kata : Funktion fÅr die einzelnen Phasen des Katapultes                 */
+/* Kata : Funktion f¬År die einzelnen Phasen des Katapultes                 */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = SpriteNummer					     	   */
 /* Ausgabe : keine							   */
@@ -1280,7 +1280,7 @@ void Kata (int xz)
 };
 
 /***************************************************************************/
-/* Diamant : Funktion fÅr die einzelnen Phasen des Diamantenglitzerns      */
+/* Diamant : Funktion f¬År die einzelnen Phasen des Diamantenglitzerns      */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = SpriteNummer					     	   */
 /* Ausgabe : keine							   */
@@ -1302,7 +1302,7 @@ void Diaman (int xz)
  return;
 };
 /***************************************************************************/
-/* Bumms : Funktion fÅr die einzelnen Phasen des Explosionspilzes          */
+/* Bumms : Funktion f¬År die einzelnen Phasen des Explosionspilzes          */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = SpriteNummer					     	   */
 /* Ausgabe : keine							   */
@@ -1324,7 +1324,7 @@ void Bumms (int xz)
  return;
 };
 /***************************************************************************/
-/* WizRot : Funktion fÅr die einzelnen Phasen des Wiz-Rotators             */
+/* WizRot : Funktion f¬År die einzelnen Phasen des Wiz-Rotators             */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = SpriteNummer					     	   */
 /* Ausgabe : keine							   */
@@ -1376,7 +1376,7 @@ void WizRot(int xz)
 };
 
 /***************************************************************************/
-/* Slimer : Funktion fÅr die einzelnen Phasen von Slimer                   */
+/* Slimer : Funktion f¬År die einzelnen Phasen von Slimer                   */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1428,7 +1428,7 @@ void Slimer (int xz)
 };
 
 /***************************************************************************/
-/* Gecko : Funktion fÅr die einzelnen Phasen von Gecko                     */
+/* Gecko : Funktion f¬År die einzelnen Phasen von Gecko                     */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1444,13 +1444,13 @@ void Gecko (int xz)
 /*-- Phase kleiner als 100, dann Gecko am Einblenden			   */
  if (p<100)				/* Gecko am Entstehen		   */
  {
-  p++;                                  /* Phase erhîhen		   */
+  p++;                                  /* Phase erh‚Äùhen		   */
   if (p<93)   SpriteDaten(xz,LEER);	/* keine Spielfigur		   */
   if (p==99)  SpriteDaten(xz,GLITZER4); /* mit Glitzern Einblenden         */
   if (p==97)  SpriteDaten(xz,GLITZER3);
   if (p==95)  SpriteDaten(xz,GLITZER2);
   if (p==93)  SpriteDaten(xz,GLITZER1);
-  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zurÅckschreiben  */
+  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zur¬Åckschreiben  */
   return;
  }
 
@@ -1466,11 +1466,11 @@ void Gecko (int xz)
  SpUntergrund=SpriteUnt(xz);
  SpKollision =SpriteKoll(xz);
 
-/*-- Reaktion auf keinen Untergrund oder Spielrand oder RaumtÅr            */
+/*-- Reaktion auf keinen Untergrund oder Spielrand oder Raumt¬År            */
  if ((SpUntergrund==0)||((SpKollision&0x40)==0x40)
 	||((SpKollision&0x20)==0x20))
  {
-  x=xalt;       			/* alte X-Koordinate zurÅckholen   */
+  x=xalt;       			/* alte X-Koordinate zur¬Åckholen   */
   if (p<102)				/* Richtungswechsel		   */
 	p=102;
   else
@@ -1482,7 +1482,7 @@ void Gecko (int xz)
  SpriteKoord(xz,x,y);
  SpriteDaten(xz,GECKO[p-100]);
 
-/*-- Daten zurÅckschreiben						   */
+/*-- Daten zur¬Åckschreiben						   */
  Objekte[(xz*4)+(Raum*19*4)+2]=x;	/* X-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+3]=y;	/* Y-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphasen		   */
@@ -1490,7 +1490,7 @@ void Gecko (int xz)
  return;
 };
 /***************************************************************************/
-/* Hexe : Funktion fÅr die einzelnen Phasen der Hexe                       */
+/* Hexe : Funktion f¬År die einzelnen Phasen der Hexe                       */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1506,13 +1506,13 @@ void Hexe (int xz)
 /*-- Phase kleiner als 100, dann Gecko am Einblenden			   */
  if (p<150)				/* Hexe am Entstehen		   */
  {
-  p++;                                  /* Phase erhîhen		   */
+  p++;                                  /* Phase erh‚Äùhen		   */
   if (p<143)  SpriteDaten(xz,LEER);	/* keine Spielfigur		   */
   if (p==149) SpriteDaten(xz,GLITZER4); /* mit Glitzern Einblenden         */
   if (p==147) SpriteDaten(xz,GLITZER3);
   if (p==145) SpriteDaten(xz,GLITZER2);
   if (p==143)  SpriteDaten(xz,GLITZER1);
-  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zurÅckschreiben  */
+  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zur¬Åckschreiben  */
   return;
  }
 
@@ -1528,11 +1528,11 @@ void Hexe (int xz)
  SpUntergrund=SpriteUnt(xz);
  SpKollision =SpriteKoll(xz);
 
-/*-- Reaktion auf keinen Untergrund oder Spielrand oder RaumtÅr            */
+/*-- Reaktion auf keinen Untergrund oder Spielrand oder Raumt¬År            */
  if ((SpUntergrund==0)||((SpKollision&0x40)==0x40)
 	||((SpKollision&0x20)==0x20))
  {
-  x=xalt;       			/* alte X-Koordinate zurÅckholen   */
+  x=xalt;       			/* alte X-Koordinate zur¬Åckholen   */
   if (p<152)				/* Richtungswechsel		   */
 	p=152;
   else
@@ -1544,7 +1544,7 @@ void Hexe (int xz)
  SpriteKoord(xz,x,y);
  SpriteDaten(xz,HEXE[p-150]);
 
-/*-- Daten zurÅckschreiben						   */
+/*-- Daten zur¬Åckschreiben						   */
  Objekte[(xz*4)+(Raum*19*4)+2]=x;	/* X-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+3]=y;	/* Y-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphasen		   */
@@ -1553,7 +1553,7 @@ void Hexe (int xz)
 };
 
 /***************************************************************************/
-/* Mauer : Funktion fÅr die geheimen Mauern                                */
+/* Mauer : Funktion f¬År die geheimen Mauern                                */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1569,14 +1569,14 @@ void Mauer (int xz)
   return;
  }
 
-/*-- Mauer am Entstehen, nach BetÑtigung des Schalters			   */
- p++;                                   /* Phase erhîhen		   */
+/*-- Mauer am Entstehen, nach Bet‚Äûtigung des Schalters			   */
+ p++;                                   /* Phase erh‚Äùhen		   */
  if (p<5)   SpriteDaten(xz,LEER);	/* keine Spielfigur		   */
  if (p==11)  SpriteDaten(xz,GLITZER4);  /* mit Glitzern Einblenden         */
  if (p==9)  SpriteDaten(xz,GLITZER3);
  if (p==7)  SpriteDaten(xz,GLITZER2);
  if (p==5)  SpriteDaten(xz,GLITZER1);
- Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zurÅckschreiben  */
+ Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Bewegungsphase zur¬Åckschreiben  */
  if (p==13)
  {
   Objekte[(xz*4)+(Raum*19*4)+0]=26;	/* Mauer zeigen			   */
@@ -1586,7 +1586,7 @@ void Mauer (int xz)
 };
 
 /***************************************************************************/
-/* Schalter : Funktion fÅr den Schalter der geheimen Mauern                */
+/* Schalter : Funktion f¬År den Schalter der geheimen Mauern                */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1605,7 +1605,7 @@ void Schalter (int xz)
 };
 
 /***************************************************************************/
-/* Point : Funktion fÅr die einzelnen Phasen von beweglichen Punkten       */
+/* Point : Funktion f¬År die einzelnen Phasen von beweglichen Punkten       */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : xz = Nummer des Sprites				     	   */
 /* Ausgabe : keine							   */
@@ -1619,21 +1619,21 @@ void Point (int xz)
 /*-- Y-Koordinate nach oben						   */
  y=y-1;
 
-/*-- Phase erhîhen							   */
+/*-- Phase erh‚Äùhen							   */
  p++;
 
 /*-- Sprite setzen							   */
  SpriteKoord(xz,x,y);
 
-/*-- ÅberprÅfen, ob schon au·erhalb des Bildschirmes oder schon 20x        */
+/*-- ¬Åberpr¬Åfen, ob schon au√°erhalb des Bildschirmes oder schon 20x        */
 /*   nach oben gestiegen						   */
  if ((y<-21)||(p>20))
  {
-  Objekte[(xz*4)+(Raum*19*4)+0]=0;	/* wenn au·erhalb, dann ausblenden */
+  Objekte[(xz*4)+(Raum*19*4)+0]=0;	/* wenn au√°erhalb, dann ausblenden */
   SpriteDeactiv(xz);
  }
 
-/*-- Koordinaten zurÅckschreiben					   */
+/*-- Koordinaten zur¬Åckschreiben					   */
  Objekte[(xz*4)+(Raum*19*4)+2]=x;	/* X-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+3]=y;	/* Y-Koordinate			   */
  Objekte[(xz*4)+(Raum*19*4)+1]=p;	/* Phasen			   */
@@ -1670,7 +1670,7 @@ void Bild_Aufbau(void)
   if (Objekt==16) Point(xz)      ;		/* bewegliche  500-Punkte  */
   if (Objekt==21) Point(xz)      ;		/* beweglicher Key-Punkt   */
   if (Objekt==32) Gecko(xz)	 ;
-  if (Objekt==33) Schalter(xz)	 ;		/* SchalterfÅr Mauer       */
+  if (Objekt==33) Schalter(xz)	 ;		/* Schalterf¬År Mauer       */
   if (Objekt==34) Mauer(xz)	 ;		/* geheime Mauer	   */
   if (Objekt==35) Fall(xz)       ;              /* Wasserfall              */
   if (Objekt==36) Wasser(xz)     ;              /* Burggraben              */
@@ -1757,7 +1757,7 @@ Bild5:
  if ((SpUntergrund==0))			/* kein Untergrund=> fallen        */
  {
   KFall--;					/* FallZeiger -1           */
-  if (KFall==0) KFall=-1;		/* Umgehen von "LuftsprÅngen"	   */
+  if (KFall==0) KFall=-1;		/* Umgehen von "Luftspr¬Ången"	   */
   KunoY=KunoY+4;                                      /* Kuno 2 tiefer 	   */
  }
  if ((SpUntergrund>0))				/* Untergrund da           */
@@ -1811,7 +1811,7 @@ Bild5:
     KPult=0;                            /* Katapultsprung beenden          */
     goto Sprit;				/* Ende Abfrage			   */
    }
-   if (Objekt==31)			/* Tor grÅn			   */
+   if (Objekt==31)			/* Tor gr¬Ån			   */
    {
     if (KFall<=-10) Power(-2);		/* Falltiefe berechnen		   */
     KFall=0;				/* Fall beendet	           	   */
@@ -1832,7 +1832,7 @@ Bild5:
    if ((SpUntergrund==0))			/* kein Untergrund=> fallen        */
    {
     KFall--;					/* FallZeiger -1           */
-    if (KFall==0) KFall=-1;		/* Umgehen von "LuftsprÅngen"	   */
+    if (KFall==0) KFall=-1;		/* Umgehen von "Luftspr¬Ången"	   */
     KunoY=KunoY+4;                                      /* Kuno 2 tiefer 	   */
    }
 
@@ -1868,7 +1868,7 @@ Bild3:
  if (KunoY<0) KunoY=KunoYalt;			/* verhindert das Ver-     */
  if (KunoX<-4) KunoX=KunoXalt;			/*  schwinden von Kuno aus */
 						/*  dem Bildschirm         */
- SpriteKoord(Kuno,KunoX,KunoY);			/* endgÅltige Koordinaten  */
+ SpriteKoord(Kuno,KunoX,KunoY);			/* endg¬Åltige Koordinaten  */
  SpriteDaten(Kuno,KPhasen[KZustand]);
  Sprite(Kuno);
 
@@ -1908,7 +1908,7 @@ void Spiel_Anfang( void )
  KunoYStart=KunoY;
  KZustand=0;			/* Kuno blickt nach links                  */
  KBeginn=8;			/* Kuno soll eingeblendet werden	   */
- KEnde=0;			/* Ende zurÅcksetzen			   */
+ KEnde=0;			/* Ende zur¬Åcksetzen			   */
  Kraft=45;
  KPult=0;
  Wappen =0;
@@ -1996,9 +1996,9 @@ weiter:
  Bild_Aufbau();
  Bild_zeigen();
 
-/*-- Abfrage, ob die Taste ESC gedrÅckt wurde				   */
+/*-- Abfrage, ob die Taste ESC gedr¬Åckt wurde				   */
  if ((Taste&0x20) != 0x20)
-	goto weiter;			/* ESC nicht gedrÅckt		   */
+	goto weiter;			/* ESC nicht gedr¬Åckt		   */
 
 
 Ende:
@@ -2009,7 +2009,7 @@ Ende:
 }
 
 /***************************************************************************/
-/* Auswahl : Auswahlprogramm fÅr MenÅsteuerung                             */
+/* Auswahl : Auswahlprogramm f¬År Men¬Åsteuerung                             */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine                                                         */
 /* Ausgabe : keine                                                         */
@@ -2044,11 +2044,11 @@ weiter:
  Sprite(Kuno);
 
 
-/*-- Abfrage, ob die Taste ESC gedrÅckt wurde				   */
+/*-- Abfrage, ob die Taste ESC gedr¬Åckt wurde				   */
 
  Bild_zeigen();
  if ((Taste&0x20) == 0x20)
- {	goto Ende ;			/* ESC gedrÅckt			   */
+ {	goto Ende ;			/* ESC gedr¬Åckt			   */
  }
  if ((Taste&0x08) == 0x08)		/* Taste oben			   */
  {
@@ -2081,10 +2081,10 @@ weiter:
 }
 
 /***************************************************************************/
-/* SpeicherRese : Reservierung von Speicher fÅr Sprites usw.               */
+/* SpeicherRese : Reservierung von Speicher f¬År Sprites usw.               */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine                                                         */
-/* Ausgabe : Erfolg = 0 - nicht genÅgend Speicher vorhanden                */
+/* Ausgabe : Erfolg = 0 - nicht gen¬Ågend Speicher vorhanden                */
 /*                  > 0 - Erfolgreiche Reservierung                        */
 /***************************************************************************/
 BYTE SpeicherRese(VOID)
@@ -2187,7 +2187,7 @@ VOID SpeicherFrei(VOID)
 }
 
 /***************************************************************************/
-/* LoadSpielSprites : lÑdt die Sprites und Texturen			   */
+/* LoadSpielSprites : l‚Äûdt die Sprites und Texturen			   */
 /*-------------------------------------------------------------------------*/
 /* Eingabe : keine						           */
 /* Ausgabe : keine							   */
@@ -2197,7 +2197,7 @@ void LoadSpielSprites (void)
 /*-- Textur laden      							   */
  Charladen("level_z.tga",Levelz,37);
 
-/*-- ZeichensÑtze laden							   */
+/*-- Zeichens‚Äûtze laden							   */
  Zeichenladen();
 
 
