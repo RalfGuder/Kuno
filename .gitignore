@@ -1,3 +1,4 @@
+/.vs/
 /target/
 /.classpath
 /.project
@@ -5,3 +6,10 @@
 /OpenAL64.dll
 /lwjgl64.dll
 /highscore.txt
+/Logs/
+/Library/
+/ProjectSettings/
+/Temp/
+/img/
+/.vsconfig
+/Packages/
