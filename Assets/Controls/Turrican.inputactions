@@ -29,16 +29,7 @@
                     "id": "ec6069da-c332-4341-9686-7eac9d1df7e5",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Jump",
-                    "type": "Button",
-                    "id": "8b91852b-b872-4515-a152-2e27596abd03",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
+                    "interactions": "Hold",
                     "initialStateCheck": false
                 }
             ],
@@ -265,12 +256,12 @@
                 },
                 {
                     "name": "",
-                    "id": "dec96e96-72cc-482a-9350-0629d886fa8a",
+                    "id": "9f7207e0-924d-45a7-8cbc-c42cfadf9145",
                     "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
-                    "action": "Jump",
+                    "action": "Fire",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
