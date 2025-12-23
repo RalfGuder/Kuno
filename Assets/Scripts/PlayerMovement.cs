@@ -14,12 +14,13 @@ namespace Turrican
     public class PlayerMovement : MonoBehaviour
     {
         [Header("Player Movement")]
-        [SerializeReference] private GameObject player;
+        [SerializeReference] private GameObject _player;
         [SerializeField] private float horizontalSpeed = 1f;
         [SerializeField] private float vertikalSpeed = 1f;
 
 
-        private SpriteRenderer renderer;
+        private Camera _camera;
+        private SpriteRenderer _renderer;
         private Animator _animation;
         private Vector2 _velocity;
         private Vector2 _input;
@@ -40,7 +41,8 @@ namespace Turrican
         // Start is called before the first frame update
         void Start()
         {
-            this.renderer = this.GetComponent<SpriteRenderer>();
+            this._camera = Camera.main;
+            this._renderer = this.GetComponent<SpriteRenderer>();
             this._animation = this.GetComponent<Animator>();
 
         }
@@ -72,7 +74,8 @@ namespace Turrican
 
             // Neue Position berechnen
             // Move translation along the object's z-axis
-            transform.Translate(_velocity.x, _velocity.y, 0);
+            // _player.transform.Translate(_velocity.x, _velocity.y, 0);
+            _camera.transform.Translate(_velocity.x, _velocity.y, 0);
 
 
             // Animationen setzen
@@ -98,7 +101,7 @@ namespace Turrican
             _animation.SetBool("isKneeling", _isKneeling);
             _animation.SetBool("isFire", _isFire);
             _animation.SetFloat("speed", Math.Abs(_velocity.x));
-            renderer.flipX = _isFlip;
+            _renderer.flipX = _isFlip;
             Debug.Log("isWalk:" + _animation.GetBool("isWalk") + ", isKneeling:" + _animation.GetBool("isKneeling"));
             Debug.Log("speed:" + _animation.GetFloat("speed"));
         }
@@ -108,12 +111,12 @@ namespace Turrican
             
             _input = context.ReadValue<Vector2>();
             _isKneeling = false;
-            if (_input.y < 0)
-            {
-                _input.y = 0;
-                _input.x = 0;
-                _isKneeling = true;
-            }
+//            if (_input.y < 0)
+//            {
+//                _input.y = 0;
+//                _input.x = 0;
+//                _isKneeling = true;
+//            }
         }
 
         public void OnJump(InputAction.CallbackContext context)

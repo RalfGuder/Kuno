@@ -34,7 +34,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -44,11 +44,11 @@ TextureImporter:
   lightmap: 0
   compressionQuality: 50
   spriteMode: 2
-  spriteExtrude: 1
+  spriteExtrude: 0
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 30
+  spritePixelsToUnits: 21
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -72,7 +72,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,9 +113,9 @@ TextureImporter:
       name: kuno-sprites_0
       rect:
         serializedVersion: 2
-        x: 0
+        x: 6
         y: 42
-        width: 24
+        width: 12
         height: 21
       alignment: 7
       pivot: {x: 0.5, y: 0}
@@ -134,9 +134,9 @@ TextureImporter:
       name: kuno-sprites_1
       rect:
         serializedVersion: 2
-        x: 24
+        x: 30
         y: 42
-        width: 24
+        width: 12
         height: 21
       alignment: 7
       pivot: {x: 0.5, y: 0}
@@ -155,9 +155,9 @@ TextureImporter:
       name: kuno-sprites_2
       rect:
         serializedVersion: 2
-        x: 48
+        x: 54
         y: 42
-        width: 24
+        width: 12
         height: 21
       alignment: 7
       pivot: {x: 0.5, y: 0}
@@ -176,9 +176,9 @@ TextureImporter:
       name: kuno-sprites_3
       rect:
         serializedVersion: 2
-        x: 72
+        x: 78
         y: 42
-        width: 24
+        width: 12
         height: 21
       alignment: 7
       pivot: {x: 0.5, y: 0}
@@ -407,8 +407,8 @@ TextureImporter:
       name: kuno-sprites_14
       rect:
         serializedVersion: 2
-        x: 0
-        y: 21
+        x: 336
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -428,8 +428,8 @@ TextureImporter:
       name: kuno-sprites_15
       rect:
         serializedVersion: 2
-        x: 24
-        y: 21
+        x: 360
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -449,8 +449,8 @@ TextureImporter:
       name: kuno-sprites_16
       rect:
         serializedVersion: 2
-        x: 48
-        y: 21
+        x: 384
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -470,8 +470,8 @@ TextureImporter:
       name: kuno-sprites_17
       rect:
         serializedVersion: 2
-        x: 72
-        y: 21
+        x: 408
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -491,8 +491,8 @@ TextureImporter:
       name: kuno-sprites_18
       rect:
         serializedVersion: 2
-        x: 96
-        y: 21
+        x: 432
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -512,8 +512,8 @@ TextureImporter:
       name: kuno-sprites_19
       rect:
         serializedVersion: 2
-        x: 120
-        y: 21
+        x: 456
+        y: 42
         width: 24
         height: 21
       alignment: 7
@@ -533,7 +533,7 @@ TextureImporter:
       name: kuno-sprites_20
       rect:
         serializedVersion: 2
-        x: 192
+        x: 0
         y: 21
         width: 24
         height: 21
@@ -554,7 +554,7 @@ TextureImporter:
       name: kuno-sprites_21
       rect:
         serializedVersion: 2
-        x: 216
+        x: 24
         y: 21
         width: 24
         height: 21
@@ -575,7 +575,7 @@ TextureImporter:
       name: kuno-sprites_22
       rect:
         serializedVersion: 2
-        x: 240
+        x: 48
         y: 21
         width: 24
         height: 21
@@ -596,7 +596,7 @@ TextureImporter:
       name: kuno-sprites_23
       rect:
         serializedVersion: 2
-        x: 264
+        x: 72
         y: 21
         width: 24
         height: 21
@@ -617,8 +617,8 @@ TextureImporter:
       name: kuno-sprites_24
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
+        x: 96
+        y: 21
         width: 24
         height: 21
       alignment: 7
@@ -638,8 +638,8 @@ TextureImporter:
       name: kuno-sprites_25
       rect:
         serializedVersion: 2
-        x: 24
-        y: 0
+        x: 120
+        y: 21
         width: 24
         height: 21
       alignment: 7
@@ -659,8 +659,8 @@ TextureImporter:
       name: kuno-sprites_26
       rect:
         serializedVersion: 2
-        x: 48
-        y: 0
+        x: 192
+        y: 21
         width: 24
         height: 21
       alignment: 7
@@ -672,6 +672,132 @@ TextureImporter:
       bones: []
       spriteID: e6aa6c6b7b5b40a4eada7bb50e520ad1
       internalID: 918264263
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_27
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 21
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc9e76b2246d9f143ae744e187bed774
+      internalID: 1188195172
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_28
+      rect:
+        serializedVersion: 2
+        x: 240
+        y: 21
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9a0ffdbd1b5424b45a1271c22d8f6dec
+      internalID: 750362991
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_29
+      rect:
+        serializedVersion: 2
+        x: 264
+        y: 21
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e279267a80b44ef44800ae12b2cf068f
+      internalID: -957933455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_30
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d1d99985cbc92854fa866789b619cf37
+      internalID: -464063299
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_31
+      rect:
+        serializedVersion: 2
+        x: 24
+        y: 0
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ad78bf363831ffd4b953bfec25e7e82f
+      internalID: 1923775964
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: kuno-sprites_32
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 24
+        height: 21
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 3b8fc0de810bd8b4d9351815529edc1a
+      internalID: 576142307
       vertices: []
       indices: 
       edges: []
@@ -707,7 +833,13 @@ TextureImporter:
       kuno-sprites_24: -1697336025
       kuno-sprites_25: -1410248821
       kuno-sprites_26: 918264263
+      kuno-sprites_27: 1188195172
+      kuno-sprites_28: 750362991
+      kuno-sprites_29: -957933455
       kuno-sprites_3: -1583679883
+      kuno-sprites_30: -464063299
+      kuno-sprites_31: 1923775964
+      kuno-sprites_32: 576142307
       kuno-sprites_4: -1988746648
       kuno-sprites_5: -1240009998
       kuno-sprites_6: 1967666608
