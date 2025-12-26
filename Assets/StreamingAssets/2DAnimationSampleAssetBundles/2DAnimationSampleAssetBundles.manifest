@@ -1,0 +1,7 @@
+ManifestFileVersion: 0
+CRC: 403572239
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: skeleton
+      Dependencies: {}

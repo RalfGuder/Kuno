@@ -1,0 +1,40 @@
+{
+    "name": "New Controls",
+    "maps": [
+        {
+            "name": "Turrican",
+            "id": "3fe1bb35-196a-4bad-bef6-7684b297c4ba",
+            "actions": [
+                {
+                    "name": "New action",
+                    "type": "Button",
+                    "id": "8e46a81a-94c6-4184-92b9-c6158e1c41f3",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "f3191b10-8fb2-4716-b1e2-c86454dbd42e",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "New action",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Tastatur",
+            "bindingGroup": "Tastatur",
+            "devices": []
+        }
+    ]
+}
