@@ -149,6 +149,60 @@ def build_inc(cfg: Config) -> str:
     return "\n".join(lines) + "\n"
 
 
+# C64-Farbpalette (Approximationen der Hardware-Farben für die Vorschau)
+C64_PALETTE = {
+    0:  (0, 0, 0),         # black
+    1:  (255, 255, 255),   # white
+    2:  (136, 0, 0),       # red
+    3:  (170, 255, 238),   # cyan
+    4:  (204, 68, 204),    # purple
+    5:  (0, 204, 85),      # green
+    6:  (0, 0, 170),       # blue
+    7:  (238, 238, 119),   # yellow
+    8:  (221, 136, 85),    # orange
+    9:  (102, 68, 0),      # brown
+    10: (255, 119, 119),   # light red
+    11: (51, 51, 51),      # dark grey
+    12: (119, 119, 119),   # mid grey
+    13: (170, 255, 102),   # light green
+    14: (0, 136, 255),     # light blue
+    15: (187, 187, 187),   # light grey
+}
+
+
+def render_preview(cfg: Config, bin_data: bytes) -> Image.Image:
+    """Decode .bin slots back to a labelled grid PNG using each phase's color."""
+    pw, ph_h = cfg.sprite_size
+    scale = 4
+    cols = 7
+    rows = (len(cfg.phases) + cols - 1) // cols
+    pad_x, pad_y = 16, 50
+    cell_w = pw * scale + pad_x
+    cell_h = ph_h * scale + pad_y
+    canvas_w = cell_w * cols + pad_x
+    canvas_h = cell_h * rows + pad_y
+
+    canvas = Image.new("RGB", (canvas_w, canvas_h), (40, 40, 50))
+    sorted_phases = sorted(cfg.phases, key=lambda p: p.slot)
+
+    for i, phase in enumerate(sorted_phases):
+        offset = phase.slot * cfg.slot_bytes
+        slot_bytes = bin_data[offset : offset + cfg.slot_bytes]
+        sprite_img = Image.new("RGB", (pw, ph_h), (255, 255, 255))
+        fg = C64_PALETTE.get(phase.color, (0, 0, 0))
+        for y in range(ph_h):
+            for x in range(pw):
+                byte = slot_bytes[y * 3 + x // 8]
+                if byte & (1 << (7 - (x % 8))):
+                    sprite_img.putpixel((x, y), fg)
+        big = sprite_img.resize((pw * scale, ph_h * scale), Image.NEAREST)
+        gx = (i % cols) * cell_w + pad_x
+        gy = (i // cols) * cell_h + pad_y
+        canvas.paste(big, (gx, gy))
+
+    return canvas
+
+
 def main() -> None:
     raise NotImplementedError("Task 7 wires this up.")
 
