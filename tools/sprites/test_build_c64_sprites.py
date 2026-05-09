@@ -87,3 +87,92 @@ def test_pack_phase_alpha_zero_is_transparent_regardless_of_color():
     img.putpixel((5, 5), (0, 0, 0, 0))  # black but fully transparent
     out = pack_phase(img, threshold=200)
     assert out == bytes(64)
+
+
+import json
+from pathlib import Path
+
+import pytest
+
+from build_c64_sprites import (
+    DuplicateSlotError,
+    PhaseOutOfBoundsError,
+    SlotOutOfRangeError,
+    load_config,
+)
+
+
+def _write_config(tmp_path: Path, overrides: dict) -> Path:
+    # ensure source image exists for happy-path tests
+    src = tmp_path / "kuno-sprites.png"
+    if not src.exists():
+        Image.new("RGBA", (640, 63), (255, 255, 255, 0)).save(src)
+    base = {
+        "source_image": "kuno-sprites.png",
+        "output_bin": "kuno_sprites.bin",
+        "output_inc": "kuno_sprites.inc",
+        "preview_built": "preview/sprites_built.png",
+        "sprite_size": [24, 21],
+        "slot_bytes": 64,
+        "threshold": 200,
+        "sprite_index_base": 200,
+        "total_slots": 2,
+        "phases": [
+            {"name": "a", "slot": 0, "pos": [0, 0], "color": 14},
+            {"name": "b", "slot": 1, "pos": [24, 0], "color": 5},
+        ],
+    }
+    base.update(overrides)
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps(base))
+    return p
+
+
+def test_load_config_happy_path(tmp_path):
+    cfg = load_config(_write_config(tmp_path, {}))
+    assert cfg.threshold == 200
+    assert cfg.total_slots == 2
+    assert len(cfg.phases) == 2
+    assert cfg.phases[0].name == "a"
+    assert cfg.phases[0].slot == 0
+    assert cfg.phases[0].pos == (0, 0)
+    assert cfg.phases[0].color == 14
+
+
+def test_load_config_rejects_duplicate_slot(tmp_path):
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "phases": [
+                {"name": "a", "slot": 0, "pos": [0, 0], "color": 14},
+                {"name": "b", "slot": 0, "pos": [24, 0], "color": 5},
+            ]
+        },
+    )
+    with pytest.raises(DuplicateSlotError) as exc:
+        load_config(cfg_path)
+    assert "0" in str(exc.value)
+    assert "a" in str(exc.value) and "b" in str(exc.value)
+
+
+def test_load_config_rejects_slot_out_of_range(tmp_path):
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 2,
+            "phases": [
+                {"name": "a", "slot": 0, "pos": [0, 0], "color": 14},
+                {"name": "b", "slot": 5, "pos": [24, 0], "color": 5},
+            ],
+        },
+    )
+    with pytest.raises(SlotOutOfRangeError) as exc:
+        load_config(cfg_path)
+    assert "5" in str(exc.value) and "2" in str(exc.value)
+
+
+def test_load_config_rejects_missing_source_image(tmp_path):
+    cfg = _write_config(tmp_path, {"source_image": "does_not_exist.png"})
+    with pytest.raises(FileNotFoundError) as exc:
+        load_config(cfg)
+    assert "does_not_exist.png" in str(exc.value)
