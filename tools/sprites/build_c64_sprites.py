@@ -114,6 +114,27 @@ def pack_phase(image: Image.Image, threshold: int) -> bytes:
     return bytes(out)
 
 
+def build_bin(cfg: Config) -> bytes:
+    """Read source PNG and produce total_slots * slot_bytes of sprite data."""
+    src = Image.open(cfg.source_image).convert("RGBA")
+    sw, sh = src.size
+    pw, ph = cfg.sprite_size
+
+    out = bytearray(cfg.total_slots * cfg.slot_bytes)
+    for phase in cfg.phases:
+        x, y = phase.pos
+        if x < 0 or y < 0 or x + pw > sw or y + ph > sh:
+            raise PhaseOutOfBoundsError(
+                f"phase {phase.name!r} at ({x},{y}) extends past image "
+                f"({sw}x{sh}) with sprite_size ({pw}x{ph})"
+            )
+        crop = src.crop((x, y, x + pw, y + ph))
+        packed = pack_phase(crop, cfg.threshold)
+        offset = phase.slot * cfg.slot_bytes
+        out[offset : offset + cfg.slot_bytes] = packed
+    return bytes(out)
+
+
 def main() -> None:
     raise NotImplementedError("Task 7 wires this up.")
 

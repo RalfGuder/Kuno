@@ -176,3 +176,69 @@ def test_load_config_rejects_missing_source_image(tmp_path):
     with pytest.raises(FileNotFoundError) as exc:
         load_config(cfg)
     assert "does_not_exist.png" in str(exc.value)
+
+
+from build_c64_sprites import build_bin
+
+
+def test_build_bin_size_equals_total_slots_times_slot_bytes(tmp_path):
+    cfg_path = _write_config(tmp_path, {"total_slots": 5})
+    cfg = load_config(cfg_path)
+    data = build_bin(cfg)
+    assert len(data) == 5 * 64
+
+
+def test_build_bin_unused_slots_are_zero(tmp_path):
+    """Slots without a phase entry are zero-padded."""
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 3,
+            "phases": [
+                {"name": "a", "slot": 1, "pos": [0, 0], "color": 14},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    data = build_bin(cfg)
+    assert data[0:64] == bytes(64)
+    assert data[128:192] == bytes(64)
+
+
+def test_build_bin_phase_at_correct_slot_offset(tmp_path):
+    """A foreground pixel at (0,0) of phase slot=2 lands at byte 2*64."""
+    src_dir = tmp_path
+    img = Image.new("RGBA", (640, 63), (255, 255, 255, 0))
+    img.putpixel((0, 0), (0, 0, 0, 255))  # one black pixel
+    img.save(src_dir / "kuno-sprites.png")
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 3,
+            "phases": [
+                {"name": "x", "slot": 2, "pos": [0, 0], "color": 14},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    data = build_bin(cfg)
+    assert data[2 * 64] == 0x80
+    assert data[2 * 64 + 1] == 0x00
+
+
+def test_build_bin_rejects_phase_out_of_bounds(tmp_path):
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 2,
+            "phases": [
+                {"name": "outside", "slot": 0, "pos": [620, 50], "color": 14},
+                {"name": "inside", "slot": 1, "pos": [0, 0], "color": 5},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    with pytest.raises(PhaseOutOfBoundsError) as exc:
+        build_bin(cfg)
+    assert "outside" in str(exc.value)
+    assert "620" in str(exc.value)
