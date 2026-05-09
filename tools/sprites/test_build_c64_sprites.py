@@ -242,3 +242,45 @@ def test_build_bin_rejects_phase_out_of_bounds(tmp_path):
         build_bin(cfg)
     assert "outside" in str(exc.value)
     assert "620" in str(exc.value)
+
+
+from build_c64_sprites import build_inc
+
+
+def test_build_inc_emits_define_per_phase(tmp_path):
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "sprite_index_base": 200,
+            "total_slots": 3,
+            "phases": [
+                {"name": "kuno_walk_left_0", "slot": 0, "pos": [0, 0], "color": 14},
+                {"name": "gecko_left_0",     "slot": 2, "pos": [0, 21], "color": 5},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    text = build_inc(cfg)
+    lines = text.splitlines()
+    assert any(line.startswith("// AUTO-GENERATED") for line in lines)
+    assert "@define KUNO_WALK_LEFT_0" in text
+    assert "@define GECKO_LEFT_0" in text
+    # index = base + slot
+    assert "@define KUNO_WALK_LEFT_0  200" in text
+    assert "@define GECKO_LEFT_0      202" in text
+
+
+def test_build_inc_skips_unused_slots(tmp_path):
+    """Empty slots produce no @define."""
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 5,
+            "phases": [
+                {"name": "a", "slot": 0, "pos": [0, 0], "color": 14},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    text = build_inc(cfg)
+    assert text.count("@define") == 1
