@@ -204,7 +204,23 @@ def render_preview(cfg: Config, bin_data: bytes) -> Image.Image:
 
 
 def main() -> None:
-    raise NotImplementedError("Task 7 wires this up.")
+    config_path = Path(__file__).parent / "sprite_phases.json"
+    cfg = load_config(config_path)
+
+    bin_data = build_bin(cfg)
+    inc_text = build_inc(cfg)
+
+    cfg.output_bin.parent.mkdir(parents=True, exist_ok=True)
+    cfg.output_bin.write_bytes(bin_data)
+    cfg.output_inc.write_text(inc_text, encoding="utf-8")
+
+    cfg.preview_built.parent.mkdir(parents=True, exist_ok=True)
+    preview = render_preview(cfg, bin_data)
+    preview.save(cfg.preview_built)
+
+    print(f"Wrote {cfg.output_bin} ({len(bin_data)} bytes)")
+    print(f"Wrote {cfg.output_inc}")
+    print(f"Wrote {cfg.preview_built}")
 
 
 if __name__ == "__main__":
