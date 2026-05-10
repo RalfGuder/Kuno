@@ -284,3 +284,14 @@ def test_build_inc_skips_unused_slots(tmp_path):
     cfg = load_config(cfg_path)
     text = build_inc(cfg)
     assert text.count("@define") == 1
+
+
+from build_c64_sprites import FileSource
+
+
+def test_filesource_is_frozen_dataclass():
+    src = FileSource(path=Path("img/KLINKS1.png"))
+    assert src.path == Path("img/KLINKS1.png")
+    with pytest.raises(Exception):
+        src.path = Path("other.png")  # frozen
+

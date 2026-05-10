@@ -8,6 +8,12 @@ from pathlib import Path
 from PIL import Image
 
 
+@dataclass(frozen=True)
+class FileSource:
+    """24x21 image file (PNG or TGA) as sprite source."""
+    path: Path
+
+
 class PhaseOutOfBoundsError(ValueError):
     """A phase position is outside the source image."""
 
