@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Pipeline `tools/sprites/build_c64_sprites.py` lädt pro Phase entweder eine eigene 24×21-Datei (PNG/TGA) aus `img/` oder weiterhin eine Sheet-Region; 34 Phasen in `sprite_phases.json`, davon 26 file-basiert (Kuno/Slimer/Skelett) und 8 sheet-basiert (Gecko/Wizrot).
+**Goal:** Pipeline `tools/sprites/build_c64_sprites.py` lädt pro Phase eine eigene 24×21-Datei (PNG/TGA) aus `img/`. Alle 34 Phasen sind file-basiert (`KLINKS*`, `KRECHTS*`, `KWAIT*`, `KLEITER*`, `KLIST/KREST/KLISPR/KRESPR`, `KBEGINN*.TGA`, `SLIMER1-4.png`, `SKEL-1/2/3.png`, `GECKO1-4.TGA`, `WIZROT1-4.TGA`).
 
-**Architecture:** `Phase` bekommt ein `src`-Feld (Union aus `FileSource{path}` und `SheetSource{path,pos}`). `load_config` validiert XOR und prüft FileSource-Dimensionen eager. Eine neue Funktion `resolve_source` liefert pro Phase ein 24×21-RGBA-Image, mit Sheet-Cache für mehrfach genutzte Sheets. `pack_phase` bleibt unverändert.
+**Architecture:** `Phase` bekommt ein `src: FileSource`-Feld (FileSource ist eine eigene Dataclass mit `path: Path`). `load_config` validiert pro Phase: Datei existiert und ist 24×21. `build_bin` öffnet pro Phase direkt mit Pillow. Kein Sheet-Modus, kein Sheet-Cache.
 
 **Tech Stack:** Python 3, Pillow (PNG+TGA), pytest. Existierende Datei: `tools/sprites/build_c64_sprites.py`. Tests: `tools/sprites/test_build_c64_sprites.py`.
 
@@ -16,17 +16,16 @@
 
 | Datei | Aktion |
 |------|--------|
-| `tools/sprites/build_c64_sprites.py` | modifizieren: `FileSource`, `SheetSource`, `Source`, `Phase.src`, `load_config`, `resolve_source` (neu), `build_bin` |
-| `tools/sprites/test_build_c64_sprites.py` | modifizieren: `_write_config`-Helper auf neues Schema; neue Tests für `src`-Schema, XOR-Validation, Dimension-Validation, TGA-Loader, Sheet-Cache |
-| `tools/sprites/sprite_phases.json` | neu schreiben: 34 Phasen mit `src` |
-| `tools/sprites/fixtures/` | neu anlegen: kleine Fixture-PNGs/TGAs für Tests |
-| `src/main/trse/Kuno/sprites/kuno_sprites.bin` | generiert (Build-Output) |
-| `src/main/trse/Kuno/sprites/kuno_sprites.inc` | generiert (Build-Output) |
+| `tools/sprites/build_c64_sprites.py` | modifizieren: `FileSource`-Klasse neu; `Phase.src` ersetzt `Phase.pos`; `Config.source_image` entfernt; `load_config` umgebaut + eager-validates; `build_bin` direkt mit `Image.open`; `PhaseOutOfBoundsError` entfernt; `ConfigError` neu |
+| `tools/sprites/test_build_c64_sprites.py` | modifizieren: `_write_config`-Helper auf neues Schema; neue Tests für `FileSource`, `src`-Schema, Existenz-/Dimensions-Validation, TGA; `PhaseOutOfBoundsError`-Test entfernt |
+| `tools/sprites/sprite_phases.json` | neu schreiben: 34 Phasen mit `src.file` |
+| `src/main/trse/Kuno/sprites/kuno_sprites.bin` | generiert (Build-Output, 2176 Byte) |
+| `src/main/trse/Kuno/sprites/kuno_sprites.inc` | generiert (Build-Output, 34 `@define`-Zeilen) |
 | `tools/sprites/preview/sprites_built.png` | generiert (Build-Output) |
 
 ---
 
-## Task 1: Source-Datentypen `FileSource` und `SheetSource`
+## Task 1: `FileSource`-Dataclass einführen
 
 **Files:**
 - Modify: `tools/sprites/build_c64_sprites.py`
@@ -37,7 +36,7 @@
 Append in `tools/sprites/test_build_c64_sprites.py`:
 
 ```python
-from build_c64_sprites import FileSource, SheetSource
+from build_c64_sprites import FileSource
 
 
 def test_filesource_is_frozen_dataclass():
@@ -45,19 +44,11 @@ def test_filesource_is_frozen_dataclass():
     assert src.path == Path("img/KLINKS1.png")
     with pytest.raises(Exception):
         src.path = Path("other.png")  # frozen
-
-
-def test_sheetsource_is_frozen_dataclass():
-    src = SheetSource(path=Path("sheet.png"), pos=(96, 0))
-    assert src.path == Path("sheet.png")
-    assert src.pos == (96, 0)
-    with pytest.raises(Exception):
-        src.pos = (0, 0)  # frozen
 ```
 
 - [ ] **Step 2: Test laufen lassen, Fail bestätigen**
 
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_filesource_is_frozen_dataclass tools/sprites/test_build_c64_sprites.py::test_sheetsource_is_frozen_dataclass -v`
+Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_filesource_is_frozen_dataclass -v`
 Expected: FAIL mit `ImportError: cannot import name 'FileSource'`
 
 - [ ] **Step 3: Implementation**
@@ -65,46 +56,33 @@ Expected: FAIL mit `ImportError: cannot import name 'FileSource'`
 In `tools/sprites/build_c64_sprites.py`, nach dem bestehenden `from PIL import Image`-Block:
 
 ```python
-from typing import Union
-
-
 @dataclass(frozen=True)
 class FileSource:
-    """Single 24x21 image file (PNG or TGA) as sprite source."""
+    """24x21 image file (PNG or TGA) as sprite source."""
     path: Path
-
-
-@dataclass(frozen=True)
-class SheetSource:
-    """Region of a larger sheet image, cropped at pos to 24x21."""
-    path: Path
-    pos: tuple[int, int]
-
-
-Source = Union[FileSource, SheetSource]
 ```
 
 - [ ] **Step 4: Test laufen lassen, Pass bestätigen**
 
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_filesource_is_frozen_dataclass tools/sprites/test_build_c64_sprites.py::test_sheetsource_is_frozen_dataclass -v`
+Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_filesource_is_frozen_dataclass -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```
 git add tools/sprites/build_c64_sprites.py tools/sprites/test_build_c64_sprites.py
-git commit -m "Add FileSource and SheetSource dataclasses"
+git commit -m "Add FileSource dataclass for sprite phase source"
 ```
 
 ---
 
-## Task 2: `Phase.src` ersetzt `Phase.pos`; `load_config` parst neues Schema
+## Task 2: `Phase.src` ersetzt `Phase.pos`; `load_config` parst `src.file`-Schema; alle bestehenden Tests migrieren
 
 Dieser Task ist groß, weil sowohl Datentyp als auch alle bestehenden Tests umgestellt werden müssen.
 
 **Files:**
-- Modify: `tools/sprites/build_c64_sprites.py` (Phase-Klasse, load_config)
-- Modify: `tools/sprites/test_build_c64_sprites.py` (alle Tests, die `pos` im JSON verwenden)
+- Modify: `tools/sprites/build_c64_sprites.py` (Phase, Config, load_config, ConfigError, PhaseOutOfBoundsError löschen, build_bin)
+- Modify: `tools/sprites/test_build_c64_sprites.py` (alle Tests, die `pos` im JSON oder `Phase.pos` verwenden)
 
 - [ ] **Step 1: Failing Test für neues Schema schreiben**
 
@@ -133,41 +111,21 @@ def test_load_config_phase_with_file_src(tmp_path):
     assert len(cfg.phases) == 1
     assert isinstance(cfg.phases[0].src, FileSource)
     assert cfg.phases[0].src.path == (tmp_path / "kuno.png").resolve()
-
-
-def test_load_config_phase_with_sheet_src(tmp_path):
-    sheet_path = tmp_path / "sheet.png"
-    Image.new("RGBA", (640, 63), (255, 255, 255, 0)).save(sheet_path)
-    cfg_data = {
-        "output_bin": "out.bin",
-        "output_inc": "out.inc",
-        "preview_built": "preview.png",
-        "sprite_size": [24, 21],
-        "slot_bytes": 64,
-        "threshold": 200,
-        "sprite_index_base": 200,
-        "total_slots": 1,
-        "phases": [
-            {"name": "g", "slot": 0, "color": 5,
-             "src": {"sheet": "sheet.png", "pos": [96, 21]}},
-        ],
-    }
-    cfg_path = tmp_path / "config.json"
-    cfg_path.write_text(json.dumps(cfg_data))
-    cfg = load_config(cfg_path)
-    assert isinstance(cfg.phases[0].src, SheetSource)
-    assert cfg.phases[0].src.path == (tmp_path / "sheet.png").resolve()
-    assert cfg.phases[0].src.pos == (96, 21)
+    assert cfg.phases[0].name == "p"
+    assert cfg.phases[0].slot == 0
+    assert cfg.phases[0].color == 14
 ```
 
 - [ ] **Step 2: Test laufen lassen, Fail bestätigen**
 
 Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_load_config_phase_with_file_src -v`
-Expected: FAIL — load_config kennt `src`-Feld nicht, KeyError oder ValidationError.
+Expected: FAIL — `src`-Feld unbekannt oder Phase-Schema-Mismatch.
 
-- [ ] **Step 3: `Phase`-Dataclass und `load_config` umstellen**
+- [ ] **Step 3: Datentypen, Exceptions und `load_config` umstellen**
 
 In `tools/sprites/build_c64_sprites.py`:
+
+- `Phase`-Dataclass anpassen:
 
 ```python
 @dataclass(frozen=True)
@@ -175,12 +133,34 @@ class Phase:
     name: str
     slot: int
     color: int
-    src: Source
+    src: FileSource
 ```
 
-(Das alte `pos`-Feld entfällt.)
+- `Config`-Dataclass: `source_image`-Feld entfernen:
 
-`Config.source_image` entfällt. `load_config` umschreiben:
+```python
+@dataclass(frozen=True)
+class Config:
+    output_bin: Path
+    output_inc: Path
+    preview_built: Path
+    sprite_size: tuple[int, int]
+    slot_bytes: int
+    threshold: int
+    sprite_index_base: int
+    total_slots: int
+    phases: tuple[Phase, ...]
+```
+
+- Alte `PhaseOutOfBoundsError`-Klasse löschen (wird nicht mehr verwendet -- es gibt keine Sheet-Crops mehr).
+- Neue Exception:
+
+```python
+class ConfigError(ValueError):
+    """Phase config has invalid src specification."""
+```
+
+- `load_config` umschreiben:
 
 ```python
 def load_config(config_path: Path) -> Config:
@@ -190,27 +170,18 @@ def load_config(config_path: Path) -> Config:
 
     base_dir = config_path.parent
 
-    def _parse_src(name: str, src_raw: dict) -> Source:
-        if "file" in src_raw and "sheet" in src_raw:
-            raise ConfigError(
-                f"phase {name!r}: src has both 'file' and 'sheet'"
-            )
-        if "file" in src_raw:
-            path = (base_dir / src_raw["file"]).resolve()
-            if not path.exists():
-                raise FileNotFoundError(f"phase {name!r}: file not found: {path}")
-            with Image.open(path) as img:
-                if img.size != (24, 21):
-                    raise ValueError(
-                        f"phase {name!r}: {path} expected 24x21, got {img.size}"
-                    )
-            return FileSource(path=path)
-        if "sheet" in src_raw:
-            path = (base_dir / src_raw["sheet"]).resolve()
-            if not path.exists():
-                raise FileNotFoundError(f"phase {name!r}: sheet not found: {path}")
-            return SheetSource(path=path, pos=tuple(src_raw["pos"]))
-        raise ConfigError(f"phase {name!r}: src has neither 'file' nor 'sheet'")
+    def _parse_src(name: str, src_raw: dict) -> FileSource:
+        if "file" not in src_raw:
+            raise ConfigError(f"phase {name!r}: src missing 'file' key")
+        path = (base_dir / src_raw["file"]).resolve()
+        if not path.exists():
+            raise FileNotFoundError(f"phase {name!r}: file not found: {path}")
+        with Image.open(path) as img:
+            if img.size != (24, 21):
+                raise ValueError(
+                    f"phase {name!r}: {path} expected 24x21, got {img.size}"
+                )
+        return FileSource(path=path)
 
     phases = tuple(
         Phase(
@@ -248,38 +219,26 @@ def load_config(config_path: Path) -> Config:
     )
 ```
 
-`Config`-Dataclass anpassen (Feld `source_image` entfernen):
+- `build_bin` umschreiben (von Sheet-Crop auf direkten File-Open):
 
 ```python
-@dataclass(frozen=True)
-class Config:
-    output_bin: Path
-    output_inc: Path
-    preview_built: Path
-    sprite_size: tuple[int, int]
-    slot_bytes: int
-    threshold: int
-    sprite_index_base: int
-    total_slots: int
-    phases: tuple[Phase, ...]
-```
-
-Neue Exception-Klasse hinzufügen:
-
-```python
-class ConfigError(ValueError):
-    """Phase config has invalid src specification."""
+def build_bin(cfg: Config) -> bytes:
+    """Pack each phase into total_slots * slot_bytes of sprite data."""
+    out = bytearray(cfg.total_slots * cfg.slot_bytes)
+    for phase in cfg.phases:
+        img = Image.open(phase.src.path).convert("RGBA")
+        packed = pack_phase(img, cfg.threshold)
+        offset = phase.slot * cfg.slot_bytes
+        out[offset : offset + cfg.slot_bytes] = packed
+    return bytes(out)
 ```
 
 - [ ] **Step 4: Bestehende Tests in `test_build_c64_sprites.py` migrieren**
 
-`_write_config`-Helper umstellen, sodass die default-Phasen `src` statt `pos` verwenden:
+Den `_write_config`-Helper umstellen, sodass er pro Phase eine eigene 24×21-PNG anlegt und im JSON `src.file` referenziert:
 
 ```python
 def _write_config(tmp_path: Path, overrides: dict) -> Path:
-    src = tmp_path / "kuno-sprites.png"
-    if not src.exists():
-        Image.new("RGBA", (640, 63), (255, 255, 255, 0)).save(src)
     base = {
         "output_bin": "kuno_sprites.bin",
         "output_inc": "kuno_sprites.inc",
@@ -290,41 +249,73 @@ def _write_config(tmp_path: Path, overrides: dict) -> Path:
         "sprite_index_base": 200,
         "total_slots": 2,
         "phases": [
-            {"name": "a", "slot": 0, "color": 14,
-             "src": {"sheet": "kuno-sprites.png", "pos": [0, 0]}},
-            {"name": "b", "slot": 1, "color": 5,
-             "src": {"sheet": "kuno-sprites.png", "pos": [24, 0]}},
+            {"name": "a", "slot": 0, "color": 14, "src": {"file": "a.png"}},
+            {"name": "b", "slot": 1, "color": 5,  "src": {"file": "b.png"}},
         ],
     }
     base.update(overrides)
+    # Stelle sicher: für jede Phase im (möglicherweise overridden) base existiert eine 24x21-PNG
+    for phase in base["phases"]:
+        rel = phase["src"]["file"]
+        f = tmp_path / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        if not f.exists():
+            Image.new("RGBA", (24, 21), (255, 255, 255, 0)).save(f)
     p = tmp_path / "config.json"
     p.write_text(json.dumps(base))
     return p
 ```
 
-In allen Tests, die `phases`-Override geben, das alte `"pos": [x, y]` durch `"src": {"sheet": "kuno-sprites.png", "pos": [x, y]}` ersetzen. Konkret betroffen:
+In allen Tests, die `phases`-Override geben, das alte `"pos": [x, y]` durch `"src": {"file": "<phase_name>.png"}` ersetzen. Konkret betroffen:
 - `test_load_config_rejects_duplicate_slot`
 - `test_load_config_rejects_slot_out_of_range`
 - `test_build_bin_unused_slots_are_zero`
 - `test_build_bin_phase_at_correct_slot_offset`
-- `test_build_bin_rejects_phase_out_of_bounds`
 - `test_build_inc_emits_define_per_phase`
 - `test_build_inc_skips_unused_slots`
 
-In `test_load_config_happy_path`: `cfg.phases[0].pos` → `cfg.phases[0].src.pos`, plus `assert isinstance(cfg.phases[0].src, SheetSource)`.
+In `test_load_config_happy_path`: `cfg.phases[0].pos` → `cfg.phases[0].src.path`, plus `assert isinstance(cfg.phases[0].src, FileSource)`.
 
-`test_load_config_rejects_missing_source_image` entfernen — `source_image` existiert nicht mehr; Existenz wird jetzt pro Phase im `src`-Block geprüft.
+Folgende Tests **löschen** (passen nicht mehr zum Schema):
+- `test_load_config_rejects_missing_source_image` (`source_image` existiert nicht mehr)
+- `test_build_bin_rejects_phase_out_of_bounds` (`PhaseOutOfBoundsError` ist gelöscht)
+
+Den Test `test_build_bin_phase_at_correct_slot_offset` so umschreiben, dass die für Phase `x` benötigte PNG schwarzes Pixel an (0,0) hat:
+
+```python
+def test_build_bin_phase_at_correct_slot_offset(tmp_path):
+    """A foreground pixel at (0,0) of phase slot=2 lands at byte 2*64."""
+    # Phase-Datei mit einem schwarzen Pixel an (0, 0) anlegen
+    phase_img = Image.new("RGBA", (24, 21), (255, 255, 255, 0))
+    phase_img.putpixel((0, 0), (0, 0, 0, 255))
+    phase_img.save(tmp_path / "x.png")
+    cfg_path = _write_config(
+        tmp_path,
+        {
+            "total_slots": 3,
+            "phases": [
+                {"name": "x", "slot": 2, "color": 14, "src": {"file": "x.png"}},
+            ],
+        },
+    )
+    cfg = load_config(cfg_path)
+    data = build_bin(cfg)
+    assert data[2 * 64] == 0x80
+    assert data[2 * 64 + 1] == 0x00
+```
+
+(Achtung: Reihenfolge der Helper-Schritte beachten -- erst die Phase-PNG anlegen, dann `_write_config` aufrufen, weil der Helper sonst eine leere Default-PNG anlegt. Der Helper überschreibt nicht, falls `if not f.exists()` matcht.)
 
 - [ ] **Step 5: Alle Tests laufen lassen**
 
 Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -v`
-Expected: alle Tests, die migriert wurden, PASS. Die zwei neuen `test_load_config_phase_with_*_src`-Tests PASS.
+Expected: alle Tests, die migriert wurden, PASS. Der neue `test_load_config_phase_with_file_src` PASS. Tests `test_load_config_rejects_missing_source_image` und `test_build_bin_rejects_phase_out_of_bounds` sind gelöscht (nicht mehr in der Datei).
 
 - [ ] **Step 6: Commit**
 
 ```
 git add tools/sprites/build_c64_sprites.py tools/sprites/test_build_c64_sprites.py
-git commit -m "Switch Phase schema to src union (FileSource | SheetSource)"
+git commit -m "Switch Phase schema to file-based src (FileSource)"
 ```
 
 ---
@@ -339,30 +330,7 @@ git commit -m "Switch Phase schema to src union (FileSource | SheetSource)"
 - [ ] **Step 1: Failing Tests schreiben**
 
 ```python
-def test_load_config_rejects_src_with_both_file_and_sheet(tmp_path):
-    img_path = tmp_path / "kuno.png"
-    Image.new("RGBA", (24, 21)).save(img_path)
-    sheet_path = tmp_path / "sheet.png"
-    Image.new("RGBA", (640, 63)).save(sheet_path)
-    cfg_data = {
-        "output_bin": "out.bin", "output_inc": "out.inc",
-        "preview_built": "p.png", "sprite_size": [24, 21],
-        "slot_bytes": 64, "threshold": 200, "sprite_index_base": 200,
-        "total_slots": 1,
-        "phases": [{
-            "name": "bad", "slot": 0, "color": 14,
-            "src": {"file": "kuno.png", "sheet": "sheet.png", "pos": [0, 0]},
-        }],
-    }
-    cfg_path = tmp_path / "c.json"
-    cfg_path.write_text(json.dumps(cfg_data))
-    from build_c64_sprites import ConfigError
-    with pytest.raises(ConfigError) as exc:
-        load_config(cfg_path)
-    assert "bad" in str(exc.value)
-
-
-def test_load_config_rejects_src_with_neither(tmp_path):
+def test_load_config_rejects_phase_without_file_key(tmp_path):
     cfg_data = {
         "output_bin": "out.bin", "output_inc": "out.inc",
         "preview_built": "p.png", "sprite_size": [24, 21],
@@ -383,24 +351,24 @@ def test_load_config_rejects_src_with_neither(tmp_path):
 
 - [ ] **Step 2: Tests laufen lassen, Pass bestätigen**
 
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_load_config_rejects_src_with_both_file_and_sheet tools/sprites/test_build_c64_sprites.py::test_load_config_rejects_src_with_neither -v`
+Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_load_config_rejects_phase_without_file_key -v`
 Expected: PASS (Code ist aus Task 2 schon implementiert).
 
 - [ ] **Step 3: Commit**
 
 ```
 git add tools/sprites/test_build_c64_sprites.py
-git commit -m "Test: load_config rejects src with both/neither file and sheet"
+git commit -m "Test: load_config rejects src without 'file' key"
 ```
 
 ---
 
-## Task 4: `load_config` validiert FileSource-Dimension eager
+## Task 4: `load_config` validiert FileSource-Existenz und -Dimension eager
 
 **Files:**
 - Modify: `tools/sprites/test_build_c64_sprites.py`
 
-- [ ] **Step 1: Failing Test schreiben**
+- [ ] **Step 1: Failing Tests schreiben**
 
 ```python
 def test_load_config_rejects_file_with_wrong_dimensions(tmp_path):
@@ -421,7 +389,7 @@ def test_load_config_rejects_file_with_wrong_dimensions(tmp_path):
     with pytest.raises(ValueError) as exc:
         load_config(cfg_path)
     assert "wrongsize" in str(exc.value)
-    assert "24x21" in str(exc.value) or "(24, 21)" in str(exc.value)
+    assert "24, 21" in str(exc.value) or "(24, 21)" in str(exc.value) or "32, 32" in str(exc.value)
 
 
 def test_load_config_rejects_file_that_does_not_exist(tmp_path):
@@ -439,12 +407,12 @@ def test_load_config_rejects_file_that_does_not_exist(tmp_path):
     cfg_path.write_text(json.dumps(cfg_data))
     with pytest.raises(FileNotFoundError) as exc:
         load_config(cfg_path)
-    assert "does_not_exist.png" in str(exc.value)
+    assert "does_not_exist.png" in str(exc.value) or "ghost" in str(exc.value)
 ```
 
 - [ ] **Step 2: Tests laufen lassen, Pass bestätigen**
 
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_load_config_rejects_file_with_wrong_dimensions tools/sprites/test_build_c64_sprites.py::test_load_config_rejects_file_that_does_not_exist -v`
+Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -k "wrong_dimensions or does_not_exist" -v`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -456,156 +424,10 @@ git commit -m "Test: load_config eager-validates FileSource existence and dimens
 
 ---
 
-## Task 5: `resolve_source` mit Sheet-Cache
+## Task 5: TGA-Loader-Test mit echter `KBEGINN1.TGA`
 
 **Files:**
-- Modify: `tools/sprites/build_c64_sprites.py` (neue Funktion)
-- Modify: `tools/sprites/test_build_c64_sprites.py` (Tests)
-
-- [ ] **Step 1: Failing Tests schreiben**
-
-```python
-from build_c64_sprites import resolve_source
-
-
-def test_resolve_source_filesource_returns_image(tmp_path):
-    img_path = tmp_path / "p.png"
-    img = Image.new("RGBA", (24, 21), (0, 0, 0, 255))
-    img.putpixel((5, 5), (255, 0, 0, 255))
-    img.save(img_path)
-    cache = {}
-    result = resolve_source(FileSource(path=img_path), cache)
-    assert result.size == (24, 21)
-    assert result.getpixel((5, 5)) == (255, 0, 0, 255)
-
-
-def test_resolve_source_sheetsource_returns_cropped_region(tmp_path):
-    sheet_path = tmp_path / "sheet.png"
-    sheet = Image.new("RGBA", (640, 63), (255, 255, 255, 0))
-    sheet.putpixel((50, 25), (0, 255, 0, 255))  # at sheet coords
-    sheet.save(sheet_path)
-    cache = {}
-    result = resolve_source(
-        SheetSource(path=sheet_path, pos=(48, 21)), cache
-    )
-    assert result.size == (24, 21)
-    # sheet (50, 25) -> crop (48, 21) -> local (2, 4)
-    assert result.getpixel((2, 4)) == (0, 255, 0, 255)
-
-
-def test_resolve_source_caches_sheet_across_calls(tmp_path, monkeypatch):
-    sheet_path = tmp_path / "sheet.png"
-    Image.new("RGBA", (640, 63), (255, 255, 255, 0)).save(sheet_path)
-    cache = {}
-
-    open_calls = []
-    real_open = Image.open
-
-    def counting_open(*args, **kwargs):
-        open_calls.append(args[0])
-        return real_open(*args, **kwargs)
-
-    monkeypatch.setattr("build_c64_sprites.Image.open", counting_open)
-
-    src1 = SheetSource(path=sheet_path, pos=(0, 0))
-    src2 = SheetSource(path=sheet_path, pos=(24, 0))
-    resolve_source(src1, cache)
-    resolve_source(src2, cache)
-
-    sheet_opens = [c for c in open_calls if str(c) == str(sheet_path)]
-    assert len(sheet_opens) == 1, f"sheet should open once, got {sheet_opens}"
-```
-
-- [ ] **Step 2: Tests laufen lassen, Fail bestätigen**
-
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_resolve_source_filesource_returns_image -v`
-Expected: FAIL mit `ImportError: cannot import name 'resolve_source'`.
-
-- [ ] **Step 3: `resolve_source` implementieren**
-
-In `tools/sprites/build_c64_sprites.py`:
-
-```python
-def resolve_source(
-    src: Source, sheet_cache: dict[Path, Image.Image]
-) -> Image.Image:
-    """Return a 24x21 RGBA image for src, caching sheets across calls."""
-    if isinstance(src, FileSource):
-        return Image.open(src.path).convert("RGBA")
-    # SheetSource
-    sheet = sheet_cache.get(src.path)
-    if sheet is None:
-        sheet = Image.open(src.path).convert("RGBA")
-        sheet_cache[src.path] = sheet
-    x, y = src.pos
-    sw, sh = sheet.size
-    if x < 0 or y < 0 or x + 24 > sw or y + 21 > sh:
-        raise PhaseOutOfBoundsError(
-            f"sheet pos ({x},{y}) extends past image ({sw}x{sh})"
-        )
-    return sheet.crop((x, y, x + 24, y + 21))
-```
-
-- [ ] **Step 4: Tests laufen lassen, Pass bestätigen**
-
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -k "resolve_source" -v`
-Expected: alle drei `test_resolve_source_*` PASS.
-
-- [ ] **Step 5: Commit**
-
-```
-git add tools/sprites/build_c64_sprites.py tools/sprites/test_build_c64_sprites.py
-git commit -m "Add resolve_source with sheet cache"
-```
-
----
-
-## Task 6: `build_bin` nutzt `resolve_source` statt direktem Sheet-Crop
-
-**Files:**
-- Modify: `tools/sprites/build_c64_sprites.py` (build_bin neu schreiben)
-- `tools/sprites/test_build_c64_sprites.py` (bestehende build_bin-Tests laufen weiter)
-
-- [ ] **Step 1: `build_bin` umschreiben**
-
-In `tools/sprites/build_c64_sprites.py`:
-
-```python
-def build_bin(cfg: Config) -> bytes:
-    """Pack each phase into total_slots * slot_bytes of sprite data."""
-    out = bytearray(cfg.total_slots * cfg.slot_bytes)
-    sheet_cache: dict[Path, Image.Image] = {}
-    for phase in cfg.phases:
-        img = resolve_source(phase.src, sheet_cache)
-        packed = pack_phase(img, cfg.threshold)
-        offset = phase.slot * cfg.slot_bytes
-        out[offset : offset + cfg.slot_bytes] = packed
-    return bytes(out)
-```
-
-- [ ] **Step 2: Bestehende build_bin-Tests laufen lassen**
-
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -k "build_bin" -v`
-Expected: alle PASS (Tests verwenden `SheetSource` per `_write_config`-Helper aus Task 2).
-
-- [ ] **Step 3: Vollen Test-Lauf**
-
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -v`
-Expected: alle Tests PASS.
-
-- [ ] **Step 4: Commit**
-
-```
-git add tools/sprites/build_c64_sprites.py
-git commit -m "Rewrite build_bin to use resolve_source with sheet cache"
-```
-
----
-
-## Task 7: TGA-Loader-Test mit echter `KBEGINN1.TGA`
-
-**Files:**
-- Modify: `tools/sprites/test_build_c64_sprites.py` (TGA-Test)
+- Modify: `tools/sprites/test_build_c64_sprites.py`
 
 - [ ] **Step 1: TGA-Test schreiben**
 
@@ -621,20 +443,11 @@ def test_pack_phase_from_real_kbeginn_tga():
     assert len(out) == 64
     # mindestens ein Byte gesetzt -- spawn-Phase ist nicht komplett leer
     assert any(b != 0 for b in out[:63])
-
-
-def test_resolve_source_loads_real_kbeginn_tga():
-    repo_root = Path(__file__).resolve().parents[2]
-    tga_path = repo_root / "img" / "KBEGINN1.TGA"
-    cache = {}
-    img = resolve_source(FileSource(path=tga_path), cache)
-    assert img.size == (24, 21)
-    assert img.mode == "RGBA"
 ```
 
-- [ ] **Step 2: Tests laufen lassen, Pass bestätigen**
+- [ ] **Step 2: Test laufen lassen, Pass bestätigen**
 
-Run: `python -m pytest tools/sprites/test_build_c64_sprites.py -k "kbeginn" -v`
+Run: `python -m pytest tools/sprites/test_build_c64_sprites.py::test_pack_phase_from_real_kbeginn_tga -v`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -646,7 +459,7 @@ git commit -m "Test: TGA loading via Pillow with real KBEGINN1.TGA"
 
 ---
 
-## Task 8: `sprite_phases.json` mit 34 Phasen schreiben
+## Task 6: `sprite_phases.json` mit 34 Phasen schreiben (alles file-basiert)
 
 **Files:**
 - Modify: `tools/sprites/sprite_phases.json` (komplett neu)
@@ -692,14 +505,14 @@ git commit -m "Test: TGA loading via Pillow with real KBEGINN1.TGA"
     { "name": "skelett_0",         "slot": 23, "color": 1,  "src": { "file": "../../img/SKEL-1.png" } },
     { "name": "skelett_1",         "slot": 24, "color": 1,  "src": { "file": "../../img/SKEL-2.png" } },
     { "name": "skelett_2",         "slot": 25, "color": 1,  "src": { "file": "../../img/SKEL-3.png" } },
-    { "name": "gecko_left_0",      "slot": 26, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [96, 21] } },
-    { "name": "gecko_left_1",      "slot": 27, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [120, 21] } },
-    { "name": "gecko_right_0",     "slot": 28, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [144, 21] } },
-    { "name": "gecko_right_1",     "slot": 29, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [168, 21] } },
-    { "name": "wizrot_0",          "slot": 30, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [192, 21] } },
-    { "name": "wizrot_1",          "slot": 31, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [216, 21] } },
-    { "name": "wizrot_2",          "slot": 32, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [240, 21] } },
-    { "name": "wizrot_3",          "slot": 33, "color": 5,  "src": { "sheet": "../../src/main/resources/kuno-sprites.png", "pos": [264, 21] } }
+    { "name": "gecko_left_0",      "slot": 26, "color": 5,  "src": { "file": "../../img/GECKO1.TGA" } },
+    { "name": "gecko_left_1",      "slot": 27, "color": 5,  "src": { "file": "../../img/GECKO2.TGA" } },
+    { "name": "gecko_right_0",     "slot": 28, "color": 5,  "src": { "file": "../../img/GECKO3.TGA" } },
+    { "name": "gecko_right_1",     "slot": 29, "color": 5,  "src": { "file": "../../img/GECKO4.TGA" } },
+    { "name": "wizrot_0",          "slot": 30, "color": 5,  "src": { "file": "../../img/WIZROT1.TGA" } },
+    { "name": "wizrot_1",          "slot": 31, "color": 5,  "src": { "file": "../../img/WIZROT2.TGA" } },
+    { "name": "wizrot_2",          "slot": 32, "color": 5,  "src": { "file": "../../img/WIZROT3.TGA" } },
+    { "name": "wizrot_3",          "slot": 33, "color": 5,  "src": { "file": "../../img/WIZROT4.TGA" } }
   ]
 }
 ```
@@ -707,21 +520,21 @@ git commit -m "Test: TGA loading via Pillow with real KBEGINN1.TGA"
 - [ ] **Step 2: Smoke-Test: Config laden**
 
 Run aus Repo-Root: `python -c "from pathlib import Path; import sys; sys.path.insert(0, 'tools/sprites'); from build_c64_sprites import load_config; cfg = load_config(Path('tools/sprites/sprite_phases.json')); print(f'OK -- {len(cfg.phases)} phases')"`
-Expected: `OK -- 34 phases` (oder Fehlermeldung mit konkretem Phasen-Namen, falls eine Datei in img/ fehlt — dann den Pfad prüfen).
+Expected: `OK -- 34 phases` (oder Fehlermeldung mit konkretem Phasen-Namen, falls eine Datei in img/ fehlt -- dann den Pfad prüfen).
 
 - [ ] **Step 3: Commit**
 
 ```
 git add tools/sprites/sprite_phases.json
-git commit -m "Switch sprite_phases.json to 34 phases with file-based src for img/ originals"
+git commit -m "Switch sprite_phases.json to 34 file-based phases from img/ originals"
 ```
 
 ---
 
-## Task 9: Build laufen lassen, Output verifizieren
+## Task 7: Build laufen lassen, Output verifizieren
 
 **Files:**
-- Generate (über Build): `src/main/trse/Kuno/sprites/kuno_sprites.bin`, `src/main/trse/Kuno/sprites/kuno_sprites.inc`, `tools/sprites/preview/sprites_built.png`
+- Generate: `src/main/trse/Kuno/sprites/kuno_sprites.bin`, `src/main/trse/Kuno/sprites/kuno_sprites.inc`, `tools/sprites/preview/sprites_built.png`
 
 - [ ] **Step 1: Build ausführen**
 
@@ -735,13 +548,7 @@ Expected: `2176`
 
 - [ ] **Step 3: Inc-Datei verifizieren**
 
-Inhalt von `src/main/trse/Kuno/sprites/kuno_sprites.inc` prüfen:
-- erste @define-Zeile: `@define KUNO_SPAWN_0       200`
-- letzte @define-Zeile: `@define WIZROT_3           233`
-- 34 `@define`-Zeilen insgesamt
-- kein `KUNO_DEAD_*` mehr
-
-Run: `python -c "import re; lines = open('src/main/trse/Kuno/sprites/kuno_sprites.inc').readlines(); defs = [l for l in lines if l.startswith('@define')]; print(f'count={len(defs)}'); print('first:', defs[0].rstrip()); print('last:', defs[-1].rstrip()); assert 'KUNO_DEAD' not in ''.join(defs)"`
+Run: `python -c "lines = open('src/main/trse/Kuno/sprites/kuno_sprites.inc').readlines(); defs = [l for l in lines if l.startswith('@define')]; print(f'count={len(defs)}'); print('first:', defs[0].rstrip()); print('last:', defs[-1].rstrip()); assert 'KUNO_DEAD' not in ''.join(defs), 'KUNO_DEAD should be gone'"`
 Expected: `count=34`, `first: @define KUNO_SPAWN_0       200`, `last: @define WIZROT_3           233`.
 
 - [ ] **Step 4: Preview-PNG visuell prüfen**
@@ -750,9 +557,9 @@ Expected: `count=34`, `first: @define KUNO_SPAWN_0       200`, `last: @define WI
 - Die ersten 4 Sprites (Spawn) zeigen erkennbare Kuno-Konturen (kein „Konfetti" mehr) -- vermutlich noch teilweise diffus, da KBEGINN-Phasen Materialisierungs-Effekte sind.
 - Walk/Stand/Jump/Idle/Ladder zeigen klare Ritter-Silhouetten **mit Konturen** (Helm, Beine, Arme erkennbar).
 - Slimer/Skelett zeigen lesbare Tier-/Skelett-Konturen.
-- Gecko/Wizrot bleiben unverändert auf altem Niveau (das ist gewollt -- bleiben sheet-basiert).
+- Gecko/Wizrot zeigen lesbare Gegner-Konturen (statt der bisherigen Pflanzen-/Klumpen-Reste).
 
-Wenn Slimer-LR-Mapping falsch erscheint (z.B. `slimer_right_*` zeigt offensichtlich nach links), in `sprite_phases.json` die Zuordnung von `SLIMER1-4.png` umbiegen und Build wiederholen, bevor commit.
+Wenn Slimer/Gecko-LR-Mapping falsch erscheint (z.B. `slimer_right_*` zeigt offensichtlich nach links), in `sprite_phases.json` die Zuordnung umbiegen und Build wiederholen, bevor commit.
 
 - [ ] **Step 5: Vollen Test-Lauf**
 
@@ -770,6 +577,7 @@ git commit -m "Build C64 sprites from img/ originals (34 phases, 2176 bytes)"
 
 ## Self-Review Checklist (vor Übergabe)
 
-- Spec-Coverage: 34 Phasen ✓ (Task 8), file/sheet-Schema ✓ (Task 1, 2), XOR-Validation ✓ (Task 3), Dimension-Validation ✓ (Task 4), Sheet-Cache ✓ (Task 5), TGA-Loader ✓ (Task 7), Build-Verifikation ✓ (Task 9).
+- Spec-Coverage: 34 Phasen ✓ (Task 6), file-Schema ✓ (Task 1, 2), src-Validation ✓ (Task 3), Existenz/Dimension-Validation ✓ (Task 4), TGA-Loader ✓ (Task 5), Build-Verifikation ✓ (Task 7).
 - Placeholder-Scan: keine TBDs/TODOs in Steps; alle Tests mit konkretem Code; alle Commands mit konkreten Erwartungswerten.
-- Type-Konsistenz: `FileSource.path: Path` in Task 1 → in Task 5 weiter genutzt; `SheetSource.pos: tuple[int,int]` durchgehend; `resolve_source(src, sheet_cache)`-Signatur in Task 5 und 6 identisch; `Phase.src` Feldname in Task 2 und 8 identisch.
+- Type-Konsistenz: `FileSource.path: Path` in Task 1 → in Task 2 als `Phase.src.path` weiter genutzt; `Phase.src` Feldname in Task 2 und 6 identisch; `ConfigError` in Task 2 erzeugt, in Task 3 als Erwartung verwendet.
+- Spec-Drift: Keine `SheetSource`/`Source`-Union/`resolve_source`/`PhaseOutOfBoundsError` mehr im Plan -- konsistent mit der aktualisierten Spec ohne Sheet-Modus.

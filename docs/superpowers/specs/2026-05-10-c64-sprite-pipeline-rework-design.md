@@ -6,33 +6,35 @@
 
 ## Zusammenfassung
 
-Die C64-Sprite-Pipeline (`tools/sprites/build_c64_sprites.py`) wird umgebaut, sodass sie pro Phase entweder eine **eigene 24×21-Quelldatei** aus `img/` liest (PNG oder TGA) oder weiterhin auf eine **Sheet-Region** zugreift. Die 26 Kuno-/Slimer-/Skelett-Phasen wechseln auf die originalen 1996er-Pixel-Art-Dateien aus `img/`, die 8 Gecko-/Wizrot-Phasen bleiben übergangsweise auf der bisherigen `src/main/resources/kuno-sprites.png`. Insgesamt **34 Phasen**.
+Die C64-Sprite-Pipeline (`tools/sprites/build_c64_sprites.py`) wird umgebaut, sodass sie pro Phase **eine eigene 24×21-Quelldatei** aus `img/` liest (PNG oder TGA). Alle 34 Phasen verwenden die originalen 1996er-Kuno-Sprites; die antialiased Sammel-PNG `src/main/resources/kuno-sprites.png` wird als Quelle obsolet.
 
 ## Problem
 
 Der aktuelle Hires-Output (`tools/sprites/preview/sprites_built.png`) verliert beim Threshold-Pass dramatisch viel Detail: der Ritter wird zur blauen Silhouette ohne erkennbare Konturen, Slimer/Gecko zu grünen Klumpen, Wizrot-Phasen zu Pflanzen-Mustern, die Spawn-Phasen 0-2 zu „Sternenkonfetti". Ursache ist nicht der Konverter, sondern die **Quelle**: `src/main/resources/kuno-sprites.png` ist ein fremdes, antialiased Sprite-Sheet, das beim 1-Bit-Threshold zwangsläufig zur Silhouette zerfällt.
 
-Im Repo liegen **die Original-Kuno-Sprites von 1996** als pixel-genau gemalte 24×21-PNG/TGA-Dateien (`KLINKS1.png`, `KRECHTS1.png`, `KWAIT1-5.png`, `KBEGINN1-4.TGA`, `SLIMER1-4.png`, `SKEL-1/2/3.png`, `KLEITER1/2.png`, …). Diese sind hires-tauglich, weil sie nie antialiased waren -- der Threshold wird auf ihnen deterministisch.
+Im Repo liegen unter `img/` **die Original-Kuno-Sprites von 1996** als pixel-genau gemalte 24×21-PNG/TGA-Dateien -- inklusive aller benötigten Phasen für Kuno (`KLINKS*`, `KRECHTS*`, `KWAIT*`, `KLEITER*`, `KLIST`, `KREST`, `KLISPR`, `KRESPR`, `KBEGINN*.TGA`), Slimer (`SLIMER1-4`), Skelett (`SKEL-1/2/3`), Gecko (`GECKO1-4.TGA`) und Wizrot (`WIZROT1-4.TGA`). Diese sind hires-tauglich, weil sie nie antialiased waren -- der Threshold wird auf ihnen deterministisch.
 
 ## Ziel
 
-- Hires-Output zeigt klar lesbare Konturen (Helm, Beine, Arme), kein Konfetti mehr.
+- Hires-Output zeigt klar lesbare Konturen (Helm, Beine, Arme, Augen), kein Konfetti mehr.
 - Die im Spiel sichtbaren Sprites sind **Ralfs eigene Originale**, nicht ein fremdes Sheet.
 - Pipeline kann TGA und PNG lesen.
-- Phasen-Liste ist konsistent (`skelett` statt `kuno_dead`, neue `idle`/`ladder`-Phasen, gestrichene Inkonsistenzen).
+- Phasen-Liste ist konsistent (`skelett` statt `kuno_dead`, neue `idle`/`ladder`-Phasen).
 
 ## Nicht-Ziele
 
 - **Kein Multicolor-Modus.** Hires bleibt; Mode-Switch ist explizit ausgeschlossen, wäre eigene spätere Iteration.
-- **Kein neues Pixel-Art für Gecko/Wizrot.** Diese 8 Phasen bleiben auf alter Sheet-Quelle, bis sie separat neu gepixelt werden.
 - **Kein Edge-Detection-Algorithmus.** Threshold bleibt simpel (Alpha + Helligkeit), die Quelle löst das Konturen-Problem.
 - **Keine Rückwärtskompatibilität zur alten 27-Phasen-`sprite_phases.json`.** Die JSON wird in einem Schritt ersetzt.
+- **Kein Sheet-Source-Mode.** Da alle 34 Phasen file-basiert sind, entfällt die Sheet-Variante komplett. `kuno-sprites.png` als Quelle wird nicht mehr referenziert (Datei darf im Repo bleiben, hat aber keinen Konsumenten mehr).
 - **Kein Encoding-Repair an `cpp/*.CPP`.** Die heute uncommitted CP437→UTF-8-Reparatur ist ein separates Thema; aus dem Scope dieser Spec.
 
 ## Phasen-Inventar (34 Phasen, Slots 0..33, Hardware-IDs 200..233)
 
-| Slot | Phase-Name | Quelle | Anmerkung |
-|------|------------|--------|-----------|
+Alle Phasen file-basiert. Pfade sind relativ zur `sprite_phases.json` (in `tools/sprites/`).
+
+| Slot | Phase-Name | Quelldatei | Anmerkung |
+|------|------------|------------|-----------|
 | 0..3 | `kuno_spawn_0..3` | `img/KBEGINN1-4.TGA` | TGA via Pillow |
 | 4..5 | `kuno_walk_left_0..1` | `img/KLINKS1.png`, `KLINKS2.png` | |
 | 6..7 | `kuno_walk_right_0..1` | `img/KRECHTS1.png`, `KRECHTS2.png` | |
@@ -45,11 +47,11 @@ Im Repo liegen **die Original-Kuno-Sprites von 1996** als pixel-genau gemalte 24
 | 19..20 | `slimer_left_0..1` | `img/SLIMER1.png`, `SLIMER2.png` | Annahme: 1/2 = links |
 | 21..22 | `slimer_right_0..1` | `img/SLIMER3.png`, `SLIMER4.png` | Annahme: 3/4 = rechts |
 | 23..25 | `skelett_0..2` | `img/SKEL-1/2/3.png` | **umbenannt** (war `kuno_dead`) |
-| 26..27 | `gecko_left_0..1` | `kuno-sprites.png` + Pos | **bleibt sheet-basiert** |
-| 28..29 | `gecko_right_0..1` | `kuno-sprites.png` + Pos | **bleibt sheet-basiert** |
-| 30..33 | `wizrot_0..3` | `kuno-sprites.png` + Pos | **bleibt sheet-basiert** |
+| 26..27 | `gecko_left_0..1` | `img/GECKO1.TGA`, `GECKO2.TGA` | Annahme: 1/2 = links |
+| 28..29 | `gecko_right_0..1` | `img/GECKO3.TGA`, `GECKO4.TGA` | Annahme: 3/4 = rechts |
+| 30..33 | `wizrot_0..3` | `img/WIZROT1-4.TGA` | 4-Phasen-Animation, eine Richtung |
 
-**Gesamt:** 26 file-basierte + 8 sheet-basierte = 34 Phasen in Slots 0..33 (Hardware-IDs 200..233). Bin-Größe: 34 × 64 = **2176 Byte**.
+**Bin-Größe:** 34 × 64 = **2176 Byte**.
 
 ## Architektur
 
@@ -57,18 +59,14 @@ Im Repo liegen **die Original-Kuno-Sprites von 1996** als pixel-genau gemalte 24
 sprite_phases.json
         |
         v
-load_config -- validiert Schema, Slot-Range, Duplikate, exakt-eines-von-{file,sheet}
+load_config -- validiert Schema, Slot-Range, Duplikate, Datei existiert + 24×21
         |
         v
 build_bin
    |
    +-- für jede Phase:
-   |     resolve_source(phase) -> 24x21 RGBA Image
-   |       |
-   |       +-- file-Variante:    open_image(path)   # Pillow, PNG+TGA
-   |       +-- sheet-Variante:   sheet_cache[path].crop(pos, 24, 21)
-   |
-   |     pack_phase(image, threshold) -> 64 Bytes Hires
+   |     img = Image.open(phase.src.path).convert("RGBA")  # PNG+TGA via Pillow
+   |     pack_phase(img, threshold) -> 64 Bytes Hires
    |
    v
 kuno_sprites.bin (2176 Byte: 34 * 64)
@@ -85,83 +83,54 @@ render_preview -> sprites_built.png
 ```python
 @dataclass(frozen=True)
 class FileSource:
-    path: Path        # absolut, basisrelativ aufgelöst aus JSON
-
-@dataclass(frozen=True)
-class SheetSource:
+    """24x21 image file (PNG or TGA) as sprite source."""
     path: Path
-    pos: tuple[int, int]
-
-Source = Union[FileSource, SheetSource]
 
 @dataclass(frozen=True)
 class Phase:
     name: str
     slot: int
     color: int
-    src: Source       # ersetzt das aktuelle pos-Feld
+    src: FileSource     # ersetzt das aktuelle pos-Feld
 ```
 
-`Config.source_image` entfällt als Pflichtfeld. Quellpfade werden pro Phase im `src`-Block geführt; relative JSON-Pfade werden weiterhin gegen das Verzeichnis der `sprite_phases.json` aufgelöst.
+`Config.source_image` entfällt als Pflichtfeld. Quellpfade werden pro Phase im `src.file`-Block geführt; relative JSON-Pfade werden weiterhin gegen das Verzeichnis der `sprite_phases.json` aufgelöst.
+
+`SheetSource` wird **nicht** eingeführt. Die Source-Klasse als eigene Dataclass bleibt erhalten, weil sie der Validation einen klaren Anker gibt (`load_config` legt eine `FileSource`-Instanz nach Existenz- und Dimensions-Check an).
 
 ### `load_config`
 
-- Akzeptiert pro Phase `src: { file: "..." }` ODER `src: { sheet: "...", pos: [x, y] }`.
-- Wirft `ConfigError` bei: beides angegeben, keines angegeben, unbekannter `src`-Key.
+- Akzeptiert pro Phase `src: { file: "..." }`. Fehlt `file` (oder andere Keys statt `file`) → `ConfigError`.
 - File-Variante: prüft Existenz **und** Dimension (24×21) -- so früh wie möglich, bevor Build läuft.
-- Sheet-Variante: prüft Existenz, Dimensionen werden in `build_bin` geprüft (analog heute).
 
 ### `pack_phase`
 
-Bleibt bytewise unverändert. Die Funktion erhält weiterhin ein 24×21-RGBA-Image und einen Threshold; **woher** das Image kommt, ist Sache des Aufrufers.
-
-### `resolve_source` (neu)
-
-```python
-def resolve_source(src: Source, sheet_cache: dict[Path, Image.Image]) -> Image.Image:
-    """24x21 RGBA Image aus Datei oder gecachtem Sheet."""
-    if isinstance(src, FileSource):
-        img = Image.open(src.path).convert("RGBA")
-        if img.size != (24, 21):
-            raise ValueError(f"{src.path}: expected 24x21, got {img.size}")
-        return img
-    # SheetSource
-    sheet = sheet_cache.get(src.path)
-    if sheet is None:
-        sheet = Image.open(src.path).convert("RGBA")
-        sheet_cache[src.path] = sheet
-    x, y = src.pos
-    return sheet.crop((x, y, x + 24, y + 21))
-```
-
-Sheet-Cache wird in `build_bin` als lokales Dict aufgebaut, sodass `kuno-sprites.png` für die 8 Gecko/Wizrot-Phasen nur **einmal** decodiert wird.
+Bleibt bytewise unverändert. Die Funktion erhält weiterhin ein 24×21-RGBA-Image und einen Threshold.
 
 ### `build_bin`
 
 ```python
 def build_bin(cfg: Config) -> bytes:
     out = bytearray(cfg.total_slots * cfg.slot_bytes)
-    sheet_cache: dict[Path, Image.Image] = {}
     for phase in cfg.phases:
-        img = resolve_source(phase.src, sheet_cache)
+        img = Image.open(phase.src.path).convert("RGBA")
         packed = pack_phase(img, cfg.threshold)
         offset = phase.slot * cfg.slot_bytes
         out[offset : offset + cfg.slot_bytes] = packed
     return bytes(out)
 ```
 
-`PhaseOutOfBoundsError` wandert in `resolve_source` (für Sheet-Variante mit Out-of-Bounds-Pos).
+`PhaseOutOfBoundsError` (für Sheet-Out-of-Bounds) wird ersatzlos entfernt -- es gibt keine Sheet-Pfade mehr. Falls die Klasse noch von Tests importiert wird, fällt das beim Test-Migration auf.
 
 ### `build_inc`
 
-Unverändert in der Logik. Die ausgegebenen `@define`-Namen erben sich aus den (neu benannten) Phase-Namen automatisch. Resultierender Inhalt:
+Unverändert. Die ausgegebenen `@define`-Namen erben sich aus den (neu benannten) Phase-Namen automatisch:
 
 ```
 @define KUNO_SPAWN_0       200
 @define KUNO_SPAWN_1       201
 ...
 @define KUNO_IDLE_0        212
-@define KUNO_IDLE_1        213
 ...
 @define KUNO_LADDER_0      217
 @define KUNO_LADDER_1      218
@@ -184,13 +153,13 @@ Unverändert in der Logik. Die ausgegebenen `@define`-Namen erben sich aus den (
 
 ### `render_preview`
 
-Unverändert in der Logik. Layout passt sich automatisch an die Phasen-Anzahl an (siehe `cols = 7`, `rows` ableitet).
+Unverändert. Layout passt sich automatisch an die Phasen-Anzahl an (`cols = 7`, `rows` ableitet).
 
 ## Datenfluss
 
 1. CLI: `python tools/sprites/build_c64_sprites.py`
 2. `main()` lädt `sprite_phases.json` → `Config`
-3. `build_bin(cfg)` öffnet pro file-Phase die Datei (Pillow erkennt `.tga` und `.png` ootb), pro sheet-Phase einmalig das Sheet, cropt, packt
+3. `build_bin(cfg)` öffnet pro Phase die Datei (Pillow erkennt `.tga` und `.png` ootb), packt 64 Byte
 4. `kuno_sprites.bin` (2176 Byte) wird geschrieben
 5. `build_inc(cfg)` schreibt `kuno_sprites.inc`
 6. `render_preview(cfg, bin_data)` schreibt `sprites_built.png` (Verifikations-Round-Trip)
@@ -199,12 +168,9 @@ Unverändert in der Logik. Layout passt sich automatisch an die Phasen-Anzahl an
 
 | Fehler | Klasse | Zeitpunkt |
 |--------|--------|-----------|
-| JSON-Phase ohne `src` | `ConfigError` | `load_config` |
-| JSON-Phase mit beiden `file` und `sheet` | `ConfigError` | `load_config` |
+| JSON-Phase ohne `src` oder ohne `src.file` | `ConfigError` | `load_config` |
 | File-Quelle existiert nicht | `FileNotFoundError` | `load_config` (eager) |
 | File-Quelle ist nicht 24×21 | `ValueError` | `load_config` (eager) |
-| Sheet-Quelle existiert nicht | `FileNotFoundError` | `load_config` (eager) |
-| Sheet-Position außerhalb des Sheets | `PhaseOutOfBoundsError` | `resolve_source` (lazy) |
 | Doppelter Slot | `DuplicateSlotError` | `load_config` |
 | Slot ≥ `total_slots` | `SlotOutOfRangeError` | `load_config` |
 
@@ -214,37 +180,40 @@ Eager-Validation in `load_config` heißt: bevor irgendein Byte gepackt wird, ist
 
 | Test | Was wird verifiziert |
 |------|----------------------|
-| `test_load_config_file_phase_ok` | Phase mit `file` validiert, Dimension geprüft |
-| `test_load_config_sheet_phase_ok` | Phase mit `sheet`+`pos` validiert |
-| `test_load_config_rejects_both_file_and_sheet` | `ConfigError` |
-| `test_load_config_rejects_neither` | `ConfigError` |
-| `test_load_config_rejects_wrong_dimension_file` | 32×32-PNG → `ValueError` |
-| `test_load_config_rejects_missing_file` | `FileNotFoundError` |
-| `test_pack_phase_from_file_png` | `KLINKS1.png` → bekannte 64-Byte-Output |
-| `test_pack_phase_from_file_tga` | TGA-Roundtrip korrekt |
-| `test_pack_phase_from_sheet_region` | Bestehender Sheet-Pfad bleibt (Gecko-Phase als Beispiel) |
-| `test_build_bin_caches_sheet_once` | Sheet wird nur einmal `Image.open`'d (Mock-Counter) |
-| `test_build_inc_naming` | `@define KUNO_IDLE_0`, `@define SKELETT_0` -- aufgeräumte Bezeichner |
+| `test_filesource_is_frozen_dataclass` | `FileSource(path)` konstruiert und frozen |
+| `test_load_config_phase_with_file_src` | Phase mit `src.file` validiert; `Phase.src` ist `FileSource` |
+| `test_load_config_rejects_phase_without_file_key` | `src: {}` → `ConfigError` |
+| `test_load_config_rejects_file_with_wrong_dimensions` | 32×32-PNG → `ValueError` |
+| `test_load_config_rejects_file_that_does_not_exist` | `FileNotFoundError` |
+| `test_pack_phase_from_real_kbeginn_tga` | TGA aus `img/KBEGINN1.TGA` korrekt geladen |
+| Bestehende `test_pack_phase_*` | Bytewise-Verhalten unverändert (8 Tests) |
+| Bestehende `test_build_inc_*` | `@define`-Erzeugung weiter korrekt (mit migriertem `_write_config`-Helper) |
 
-Bestehende Tests werden migriert: alle, die direkt `Phase(name, slot, pos, color)` konstruieren, müssen auf neues Schema umgestellt werden.
+Bestehende Tests werden migriert: alle, die `Phase(name, slot, pos, color)` bzw. `pos`-Feld im JSON nutzen, müssen auf neues `src.file`-Schema umgestellt werden. Tests, die `PhaseOutOfBoundsError` testen, werden gelöscht (Klasse entfällt) -- aber wir müssen sie ersetzen mit Tests für die neuen Validation-Regeln.
 
 ## Migration in einem Schwung
 
-1. **`sprite_phases.json` neu schreiben** -- 34 Phasen mit neuem `src`-Schema, 26 file-basiert, 8 sheet-basiert.
-2. **Code-Änderungen in `build_c64_sprites.py`** (siehe Komponenten-Sektion).
-3. **Tests umstellen** (siehe Test-Sektion).
+1. **`sprite_phases.json` neu schreiben** -- 34 Phasen mit `src: { file: "..." }`, alle file-basiert.
+2. **Code-Änderungen in `build_c64_sprites.py`**:
+   - `FileSource`-Dataclass einführen
+   - `Phase.pos` → `Phase.src: FileSource`
+   - `Config.source_image` entfernen
+   - `load_config` umbauen + eager-validate
+   - `build_bin` direkt mit `Image.open(phase.src.path)`
+   - `PhaseOutOfBoundsError` löschen
+   - `ConfigError` einführen
+3. **Tests umstellen** (`_write_config`-Helper auf neues Schema; `PhaseOutOfBoundsError`-Tests durch File-Validation-Tests ersetzen).
 4. **Build laufen lassen** -- `kuno_sprites.bin` (2176 B), `kuno_sprites.inc` (34 Einträge), `sprites_built.png` zur visuellen Verifikation.
-5. **`main.ras` prüfen** -- falls `KUNO_DEAD_*` schon irgendwo referenziert ist, auf `SKELETT_*` umbiegen. Falls neue Phasen (`KUNO_IDLE_*`, `KUNO_LADDER_*`) noch nicht angesprochen werden, kein Eingriff nötig.
 
 ## Risiken und offene Punkte
 
-- **Slimer-LR-Annahme**: dass `SLIMER1/2 = links` und `SLIMER3/4 = rechts` ist eine Vermutung aus den Dateinamen. Wenn die Originale anders nummeriert sind (z.B. alle 4 = ein Tier, oder 1/2 = Variante A, 3/4 = Variante B), muss das Mapping nach erstem `sprites_built.png`-Vergleich nachgezogen werden.
-- **`kuno_dead` → `skelett` Bezeichner-Bruch**: falls `main.ras` aktuell `KUNO_DEAD_*` referenziert, fällt das beim TRSE-Build auf -- dann dort umbenennen. Falls nicht, kein Effekt.
+- **Slimer-/Gecko-/Wizrot-Mapping-Annahmen**: Dass `SLIMER1/2 = links, 3/4 = rechts` und analog `GECKO1/2 = links, 3/4 = rechts` stimmen, ist eine Vermutung aus den Dateinamen. `WIZROT1-4` werden als 4-Phasen-Animation einer Richtung interpretiert. Wenn die Originale anders nummeriert sind, muss das Mapping nach dem ersten `sprites_built.png`-Vergleich nachgezogen werden.
+- **`kuno_dead` → `skelett` Bezeichner-Bruch**: `.ras`-Dateien referenzieren aktuell **keine** `@define`-Bezeichner aus der `.inc` (per `grep` verifiziert), also folgenlos.
+- **`img/` ist gitignored**: Bereits getrackte Files unter `img/` werden weiter aktualisiert, neue ignoriert. Build benötigt `img/`, das ist bei Ralf vorhanden. Bei einem Re-Clone müsste `img/` separat wiederhergestellt werden -- separate Aufgabe (`.gitignore`-Repair später).
 - **Out-of-Repo-Sprite-Editing**: Die Original-PNGs werden ab jetzt produktiv -- bei Änderungen an `KLINKS1.png` etc. gilt der Build neu. Risiko: versehentliche Edits in `img/` brechen den C64-Build.
-- **TGA-Konvertierung durch Pillow**: getestet wird zwar, aber nicht alle TGA-Subformate (RLE, paletted, 32-bit) sind explizit verifiziert. `KBEGINN1-4.TGA` werden im ersten Build empirisch geprüft.
+- **TGA-Konvertierung durch Pillow**: getestet wird zwar, aber nicht alle TGA-Subformate (RLE, paletted, 32-bit) sind explizit verifiziert. Die in `img/` vorhandenen TGAs werden im ersten Build empirisch geprüft.
 
 ## Nächste Schritte nach Approval
 
-1. Implementierungsplan via `superpowers:writing-plans` aus dieser Spec erzeugen.
-2. Plan ausführen (atomare Commits, Linie der bestehenden Spec-/Plan-/Skeleton-/Funktion-Reihenfolge).
-3. Visueller Check: `sprites_built.png` zeigt klar lesbare Kuno-Konturen.
+1. Implementierungsplan ausführen (siehe `docs/superpowers/plans/2026-05-10-c64-sprite-pipeline-rework.md`).
+2. Visueller Check: `sprites_built.png` zeigt klar lesbare Kuno-Konturen.
