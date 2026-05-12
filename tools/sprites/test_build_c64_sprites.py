@@ -109,7 +109,7 @@ def _write_config(tmp_path: Path, overrides: dict) -> Path:
         "dark_threshold": 80,
         "bright_threshold": 240,
         "sprite_index_base": 200,
-        "total_slots": 2,
+        "total_slots": 4,
         "phases": [
             {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
             {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
@@ -132,7 +132,7 @@ def test_load_config_happy_path(tmp_path):
     cfg = load_config(_write_config(tmp_path, {}))
     assert cfg.dark_threshold == 80
     assert cfg.bright_threshold == 240
-    assert cfg.total_slots == 2
+    assert cfg.total_slots == 4
     assert len(cfg.phases) == 2
     assert cfg.phases[0].name == "a"
     assert cfg.phases[0].slot == 0
@@ -227,27 +227,82 @@ def test_load_config_rejects_duplicate_slot(tmp_path):
     assert "a" in str(exc.value) and "b" in str(exc.value)
 
 
-def test_load_config_rejects_slot_out_of_range(tmp_path):
-    cfg_path = _write_config(
+def test_load_config_requires_dark_threshold(tmp_path):
+    cfg = _write_config(tmp_path, {})
+    raw = json.loads(cfg.read_text())
+    del raw["dark_threshold"]
+    cfg.write_text(json.dumps(raw))
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_requires_bright_threshold(tmp_path):
+    cfg = _write_config(tmp_path, {})
+    raw = json.loads(cfg.read_text())
+    del raw["bright_threshold"]
+    cfg.write_text(json.dumps(raw))
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_rejects_dark_ge_bright(tmp_path):
+    cfg = _write_config(tmp_path, {"dark_threshold": 200, "bright_threshold": 200})
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_requires_color_outline(tmp_path):
+    cfg = _write_config(
         tmp_path,
-        {
-            "total_slots": 2,
-            "phases": [
-                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
-                {"name": "b", "slot": 5, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
-            ],
-        },
+        {"phases": [
+            {"name": "a", "slot": 0, "color_fill": 14, "src": {"file": "a.png"}},
+            {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5,
+             "src": {"file": "b.png"}},
+        ]},
     )
-    with pytest.raises(SlotOutOfRangeError) as exc:
-        load_config(cfg_path)
-    assert "5" in str(exc.value) and "2" in str(exc.value)
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_requires_color_fill(tmp_path):
+    cfg = _write_config(
+        tmp_path,
+        {"phases": [
+            {"name": "a", "slot": 0, "color_outline": 0, "src": {"file": "a.png"}},
+            {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5,
+             "src": {"file": "b.png"}},
+        ]},
+    )
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_rejects_odd_total_slots(tmp_path):
+    cfg = _write_config(tmp_path, {"total_slots": 3})
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_load_config_slot_range_is_half_of_total(tmp_path):
+    cfg = _write_config(
+        tmp_path,
+        {"total_slots": 4,
+         "phases": [
+             {"name": "a", "slot": 2, "color_outline": 0, "color_fill": 14,
+              "src": {"file": "a.png"}},
+             {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5,
+              "src": {"file": "b.png"}},
+         ]},
+    )
+    with pytest.raises(SlotOutOfRangeError):
+        load_config(cfg)
 
 
 def test_build_bin_size_equals_total_slots_times_slot_bytes(tmp_path):
-    cfg_path = _write_config(tmp_path, {"total_slots": 5})
+    cfg_path = _write_config(tmp_path, {"total_slots": 6})
     cfg = load_config(cfg_path)
     data = build_bin(cfg)
-    assert len(data) == 5 * 64
+    assert len(data) == 6 * 64
 
 
 def test_build_bin_unused_slots_are_zero(tmp_path):
@@ -255,7 +310,7 @@ def test_build_bin_unused_slots_are_zero(tmp_path):
     cfg_path = _write_config(
         tmp_path,
         {
-            "total_slots": 3,
+            "total_slots": 4,
             "phases": [
                 {"name": "a", "slot": 1, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
             ],
@@ -281,7 +336,7 @@ def test_build_bin_phase_at_correct_slot_offset(tmp_path):
         "dark_threshold": 80,
         "bright_threshold": 240,
         "sprite_index_base": 200,
-        "total_slots": 3,
+        "total_slots": 6,
         "phases": [
             {"name": "x", "slot": 2, "color_outline": 0, "color_fill": 14, "src": {"file": "one_pixel.png"}},
         ],
@@ -310,7 +365,7 @@ def test_build_inc_emits_define_per_phase(tmp_path):
         tmp_path,
         {
             "sprite_index_base": 200,
-            "total_slots": 3,
+            "total_slots": 6,
             "phases": [
                 {"name": "kuno_walk_left_0", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
                 {"name": "gecko_left_0",     "slot": 2, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
@@ -332,7 +387,7 @@ def test_build_inc_skips_unused_slots(tmp_path):
     cfg_path = _write_config(
         tmp_path,
         {
-            "total_slots": 5,
+            "total_slots": 6,
             "phases": [
                 {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
             ],

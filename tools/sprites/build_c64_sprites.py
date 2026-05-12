@@ -63,6 +63,16 @@ def load_config(config_path: Path) -> Config:
     with config_path.open("r", encoding="utf-8") as f:
         raw = json.load(f)
 
+    if "dark_threshold" not in raw or "bright_threshold" not in raw:
+        raise ConfigError("config requires dark_threshold and bright_threshold")
+    if raw["dark_threshold"] >= raw["bright_threshold"]:
+        raise ConfigError(
+            f"dark_threshold ({raw['dark_threshold']}) must be < "
+            f"bright_threshold ({raw['bright_threshold']})"
+        )
+    if raw["total_slots"] % 2 != 0:
+        raise ConfigError(f"total_slots must be even (got {raw['total_slots']})")
+
     base_dir = config_path.parent
     sprite_size = tuple(raw["sprite_size"])
 
@@ -72,6 +82,10 @@ def load_config(config_path: Path) -> Config:
         if not isinstance(src, dict) or "file" not in src:
             raise ConfigError(
                 f"phase {p.get('name')!r} requires src.file in sprite_phases.json"
+            )
+        if "color_outline" not in p or "color_fill" not in p:
+            raise ConfigError(
+                f"phase {p.get('name')!r} requires color_outline and color_fill"
             )
         src_path = (base_dir / src["file"]).resolve()
         if not src_path.exists():
@@ -95,11 +109,12 @@ def load_config(config_path: Path) -> Config:
         )
 
     total = raw["total_slots"]
+    half = total // 2
     seen_slots: dict[int, str] = {}
     for ph in phases_list:
-        if ph.slot >= total or ph.slot < 0:
+        if ph.slot >= half or ph.slot < 0:
             raise SlotOutOfRangeError(
-                f"phase {ph.name!r} has slot {ph.slot}, must be in [0, {total})"
+                f"phase {ph.name!r} has slot {ph.slot}, must be in [0, {half})"
             )
         if ph.slot in seen_slots:
             raise DuplicateSlotError(
