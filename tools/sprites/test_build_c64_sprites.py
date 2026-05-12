@@ -361,7 +361,6 @@ def test_build_bin_fill_lands_in_upper_bank(tmp_path):
     assert data[(2 + 1) * 64] == 0x40      # fill bank slot 1 (half=2)
 
 
-@pytest.mark.skip(reason="re-enabled after Task 7 sprite_phases.json migration")
 def test_build_bin_loads_real_kbeginn_tga():
     """The 1996 TGA originals load via Pillow and pack without error."""
     cfg = load_config(Path(__file__).parent / "sprite_phases.json")
