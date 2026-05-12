@@ -397,6 +397,15 @@ def test_build_inc_emits_outline_and_fill_per_phase(tmp_path):
     assert text.count("@define") == 4
 
 
+def test_render_preview_runs_without_error(tmp_path):
+    from build_c64_sprites import render_preview
+    cfg_path = _write_config(tmp_path, {})
+    cfg = load_config(cfg_path)
+    data = build_bin(cfg)
+    img = render_preview(cfg, data)
+    assert img.size[0] > 0 and img.size[1] > 0
+
+
 def test_build_inc_fill_offset_is_half_of_total_slots(tmp_path):
     cfg_path = _write_config(tmp_path, {})  # total_slots=4, half=2
     cfg = load_config(cfg_path)

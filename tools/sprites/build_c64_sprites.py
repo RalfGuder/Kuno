@@ -244,10 +244,11 @@ C64_PALETTE = {
 
 
 def render_preview(cfg: Config, bin_data: bytes) -> Image.Image:
-    """Decode .bin slots back to a labelled grid PNG using each phase's color."""
+    """Decode both slot banks back to a grid PNG, stacking outline over fill."""
     pw, ph_h = cfg.sprite_size
     scale = 4
     cols = 7
+    half = cfg.total_slots // 2
     rows = (len(cfg.phases) + cols - 1) // cols
     pad_x, pad_y = 16, 50
     cell_w = pw * scale + pad_x
@@ -259,15 +260,21 @@ def render_preview(cfg: Config, bin_data: bytes) -> Image.Image:
     sorted_phases = sorted(cfg.phases, key=lambda p: p.slot)
 
     for i, phase in enumerate(sorted_phases):
-        offset = phase.slot * cfg.slot_bytes
-        slot_bytes = bin_data[offset : offset + cfg.slot_bytes]
+        out_off = phase.slot * cfg.slot_bytes
+        fill_off = (half + phase.slot) * cfg.slot_bytes
+        outline_bytes = bin_data[out_off : out_off + cfg.slot_bytes]
+        fill_bytes = bin_data[fill_off : fill_off + cfg.slot_bytes]
         sprite_img = Image.new("RGB", (pw, ph_h), (255, 255, 255))
-        fg = C64_PALETTE.get(phase.color_fill, (0, 0, 0))
+        fc = C64_PALETTE.get(phase.color_fill, (0, 0, 0))
+        oc = C64_PALETTE.get(phase.color_outline, (0, 0, 0))
         for y in range(ph_h):
             for x in range(pw):
-                byte = slot_bytes[y * 3 + x // 8]
-                if byte & (1 << (7 - (x % 8))):
-                    sprite_img.putpixel((x, y), fg)
+                bit = 1 << (7 - (x % 8))
+                byte_idx = y * 3 + x // 8
+                if fill_bytes[byte_idx] & bit:
+                    sprite_img.putpixel((x, y), fc)
+                if outline_bytes[byte_idx] & bit:
+                    sprite_img.putpixel((x, y), oc)
         big = sprite_img.resize((pw * scale, ph_h * scale), Image.NEAREST)
         gx = (i % cols) * cell_w + pad_x
         gy = (i // cols) * cell_h + pad_y
