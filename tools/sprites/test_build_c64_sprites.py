@@ -14,7 +14,7 @@ from build_c64_sprites import (
     build_bin,
     build_inc,
     load_config,
-    pack_phase,
+    pack_phase_pair,
 )
 
 
@@ -22,84 +22,72 @@ def _blank() -> Image.Image:
     return Image.new("RGBA", (24, 21), (255, 255, 255, 0))
 
 
-def test_pack_phase_all_transparent_returns_zeros():
+def test_pack_phase_pair_all_transparent_returns_two_zero_blocks():
     img = _blank()
-    out = pack_phase(img, threshold=200)
-    assert out == bytes(64)
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline == bytes(64)
+    assert fill == bytes(64)
 
 
-def test_pack_phase_top_left_pixel_sets_msb_of_byte0():
+def test_pack_phase_pair_dark_pixel_goes_to_outline():
     img = _blank()
-    img.putpixel((0, 0), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    expected = bytearray(64)
-    expected[0] = 0x80
-    assert out == bytes(expected)
+    img.putpixel((1, 0), (0, 0, 0, 255))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline[0] == 0x40  # bit (7 - 1) of byte 0
+    assert fill == bytes(64)
 
 
-def test_pack_phase_top_right_pixel_sets_lsb_of_byte2():
+def test_pack_phase_pair_midbright_pixel_goes_to_fill():
     img = _blank()
-    img.putpixel((23, 0), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    expected = bytearray(64)
-    expected[2] = 0x01
-    assert out == bytes(expected)
+    img.putpixel((1, 0), (150, 150, 150, 255))  # avg 150
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline == bytes(64)
+    assert fill[0] == 0x40  # bit (7 - 1) of byte 0
 
 
-def test_pack_phase_pixel_at_8_0_starts_byte1():
-    """Pixel x=8 is the MSB of the second byte in row 0."""
+def test_pack_phase_pair_very_bright_pixel_is_off_in_both():
     img = _blank()
-    img.putpixel((8, 0), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    expected = bytearray(64)
-    expected[1] = 0x80
-    assert out == bytes(expected)
+    img.putpixel((0, 0), (255, 255, 255, 255))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline == bytes(64)
+    assert fill == bytes(64)
 
 
-def test_pack_phase_bottom_left_pixel_at_byte60():
-    """Row 20 starts at byte 60 (20 * 3)."""
+def test_pack_phase_pair_alpha_zero_kills_both():
     img = _blank()
-    img.putpixel((0, 20), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    expected = bytearray(64)
-    expected[60] = 0x80
-    assert out == bytes(expected)
+    img.putpixel((0, 0), (0, 0, 0, 0))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline == bytes(64)
+    assert fill == bytes(64)
 
 
-def test_pack_phase_full_first_row():
+def test_pack_phase_pair_tga_background_color_treated_transparent():
+    """Opaque (0,0) pixel defines the background color for the whole sprite."""
+    img = Image.new("RGBA", (24, 21), (255, 100, 100, 255))
+    img.putpixel((5, 5), (0, 0, 0, 255))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    expected_outline = bytearray(64)
+    expected_outline[5 * 3] = 1 << (7 - 5)
+    assert outline == bytes(expected_outline)
+    assert fill == bytes(64)
+
+
+def test_pack_phase_pair_threshold_boundary_dark():
+    """brightness == dark_threshold goes to fill (outline uses '<')."""
     img = _blank()
-    for x in range(24):
-        img.putpixel((x, 0), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    assert out[0:3] == b"\xff\xff\xff"
-    assert out[3:64] == bytes(61)
+    img.putpixel((1, 0), (80, 80, 80, 255))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline[0] == 0x00
+    assert fill[0] == 0x40
 
 
-def test_pack_phase_padding_byte_is_zero():
-    img = Image.new("RGBA", (24, 21), (0, 0, 0, 255))
-    out = pack_phase(img, threshold=200)
-    assert len(out) == 64
-    assert out[63] == 0
-
-
-def test_pack_phase_threshold_treats_light_gray_as_background():
-    img = Image.new("RGBA", (24, 21), (220, 220, 220, 255))
-    out = pack_phase(img, threshold=200)
-    assert out == bytes(64)
-
-
-def test_pack_phase_threshold_treats_dark_gray_as_foreground():
-    img = Image.new("RGBA", (24, 21), (100, 100, 100, 255))
-    out = pack_phase(img, threshold=200)
-    assert out[0:63] == b"\xff" * 63
-    assert out[63] == 0
-
-
-def test_pack_phase_alpha_zero_is_transparent_regardless_of_color():
+def test_pack_phase_pair_threshold_boundary_bright():
+    """brightness == bright_threshold drops out of fill (fill uses '<')."""
     img = _blank()
-    img.putpixel((5, 5), (0, 0, 0, 0))
-    out = pack_phase(img, threshold=200)
-    assert out == bytes(64)
+    img.putpixel((1, 0), (240, 240, 240, 255))
+    outline, fill = pack_phase_pair(img, dark_threshold=80, bright_threshold=240)
+    assert outline[0] == 0x00
+    assert fill[0] == 0x00
 
 
 def _make_src(tmp_path: Path, name: str, fill=(0, 0, 0, 255)) -> str:
@@ -276,9 +264,9 @@ def test_build_bin_unused_slots_are_zero(tmp_path):
 
 
 def test_build_bin_phase_at_correct_slot_offset(tmp_path):
-    """A foreground pixel at (0,0) of phase slot=2 lands at byte 2*64."""
+    """A dark pixel at (1,0) of phase slot=2 lands at byte 2*64."""
     img = Image.new("RGBA", (24, 21), (255, 255, 255, 0))
-    img.putpixel((0, 0), (0, 0, 0, 255))
+    img.putpixel((1, 0), (0, 0, 0, 255))
     img.save(tmp_path / "one_pixel.png")
     raw = {
         "output_bin": "kuno_sprites.bin",
@@ -286,7 +274,7 @@ def test_build_bin_phase_at_correct_slot_offset(tmp_path):
         "preview_built": "preview/sprites_built.png",
         "sprite_size": [24, 21],
         "slot_bytes": 64,
-        "threshold": 200,
+        "threshold": 80,
         "sprite_index_base": 200,
         "total_slots": 3,
         "phases": [
@@ -297,7 +285,7 @@ def test_build_bin_phase_at_correct_slot_offset(tmp_path):
     p.write_text(json.dumps(raw))
     cfg = load_config(p)
     data = build_bin(cfg)
-    assert data[2 * 64] == 0x80
+    assert data[2 * 64] == 0x40
     assert data[2 * 64 + 1] == 0x00
 
 

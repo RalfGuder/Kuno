@@ -117,34 +117,62 @@ def load_config(config_path: Path) -> Config:
     )
 
 
-def pack_phase(image: Image.Image, threshold: int) -> bytes:
-    """Pack a 24x21 RGBA image into 64 bytes of C64 hires sprite data.
+def pack_phase_pair(
+    image: Image.Image,
+    dark_threshold: int,
+    bright_threshold: int,
+) -> tuple[bytes, bytes]:
+    """Pack a 24x21 RGBA image into two 64-byte hires sprite blocks.
 
-    Layout: each row uses 3 bytes (24 bits), MSB-first. Row y starts at
-    byte y*3. The 64th byte is slot padding (always 0). A pixel is
-    foreground when alpha > 0 AND (R+G+B)/3 < threshold.
+    Returns (outline_bytes, fill_bytes). Both share the same 3-bytes-per-row,
+    MSB-first layout used for single-sprite hires; byte 63 is always 0.
+
+    Background detection: the pixel at (0, 0) defines transparency. If its
+    alpha is 0, the alpha channel drives transparency (PNG case). Otherwise
+    any pixel matching its RGB is treated as background (TGA case where
+    the source has no real alpha channel).
+
+    Pixel classification (when not background and alpha > 0):
+        avg(R,G,B) <  dark_threshold                       -> outline bit
+        dark_threshold <= avg(R,G,B) < bright_threshold    -> fill bit
+        avg(R,G,B) >= bright_threshold                     -> neither
     """
     if image.size != (24, 21):
         raise ValueError(f"expected 24x21 image, got {image.size}")
-    out = bytearray(64)
+    bg_r, bg_g, bg_b, bg_a = image.getpixel((0, 0))
+    outline = bytearray(64)
+    fill = bytearray(64)
     for y in range(21):
         for x in range(24):
             r, g, b, a = image.getpixel((x, y))
-            if a > 0 and (r + g + b) // 3 < threshold:
-                byte_idx = y * 3 + x // 8
-                bit_idx = 7 - (x % 8)
-                out[byte_idx] |= 1 << bit_idx
-    return bytes(out)
+            if a == 0:
+                continue
+            if bg_a != 0 and (r, g, b) == (bg_r, bg_g, bg_b):
+                continue
+            brightness = (r + g + b) // 3
+            byte_idx = y * 3 + x // 8
+            bit = 1 << (7 - (x % 8))
+            if brightness < dark_threshold:
+                outline[byte_idx] |= bit
+            elif brightness < bright_threshold:
+                fill[byte_idx] |= bit
+    return bytes(outline), bytes(fill)
 
 
 def build_bin(cfg: Config) -> bytes:
-    """Pack every phase's source file and produce total_slots * slot_bytes bytes."""
+    """Pack every phase's source file and produce total_slots * slot_bytes bytes.
+
+    Transitional layout until Task 4 introduces the two-bank split: only
+    the outline block is written, using cfg.threshold as dark_threshold
+    and 240 as a temporary bright_threshold ceiling. Fill bytes are
+    discarded for now.
+    """
     out = bytearray(cfg.total_slots * cfg.slot_bytes)
     for phase in cfg.phases:
         img = Image.open(phase.src.path).convert("RGBA")
-        packed = pack_phase(img, cfg.threshold)
+        outline, _ = pack_phase_pair(img, cfg.threshold, 240)
         offset = phase.slot * cfg.slot_bytes
-        out[offset : offset + cfg.slot_bytes] = packed
+        out[offset : offset + cfg.slot_bytes] = outline
     return bytes(out)
 
 
