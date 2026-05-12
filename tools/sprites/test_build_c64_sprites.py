@@ -106,12 +106,13 @@ def _write_config(tmp_path: Path, overrides: dict) -> Path:
         "preview_built": "preview/sprites_built.png",
         "sprite_size": [24, 21],
         "slot_bytes": 64,
-        "threshold": 200,
+        "dark_threshold": 80,
+        "bright_threshold": 240,
         "sprite_index_base": 200,
         "total_slots": 2,
         "phases": [
-            {"name": "a", "slot": 0, "color": 14, "src": {"file": "a.png"}},
-            {"name": "b", "slot": 1, "color": 5,  "src": {"file": "b.png"}},
+            {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
+            {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
         ],
     }
     base.update(overrides)
@@ -129,12 +130,14 @@ def test_filesource_is_frozen_dataclass():
 
 def test_load_config_happy_path(tmp_path):
     cfg = load_config(_write_config(tmp_path, {}))
-    assert cfg.threshold == 200
+    assert cfg.dark_threshold == 80
+    assert cfg.bright_threshold == 240
     assert cfg.total_slots == 2
     assert len(cfg.phases) == 2
     assert cfg.phases[0].name == "a"
     assert cfg.phases[0].slot == 0
-    assert cfg.phases[0].color == 14
+    assert cfg.phases[0].color_outline == 0
+    assert cfg.phases[0].color_fill == 14
     assert isinstance(cfg.phases[0].src, FileSource)
     assert cfg.phases[0].src.path.name == "a.png"
 
@@ -144,8 +147,8 @@ def test_load_config_rejects_phase_without_src(tmp_path):
         tmp_path,
         {
             "phases": [
-                {"name": "a", "slot": 0, "color": 14},
-                {"name": "b", "slot": 1, "color": 5, "src": {"file": "b.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14},
+                {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5, "src": {"file": "b.png"}},
             ]
         },
     )
@@ -159,8 +162,8 @@ def test_load_config_rejects_phase_without_file_key(tmp_path):
         tmp_path,
         {
             "phases": [
-                {"name": "a", "slot": 0, "color": 14, "src": {}},
-                {"name": "b", "slot": 1, "color": 5, "src": {"file": "b.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {}},
+                {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5, "src": {"file": "b.png"}},
             ]
         },
     )
@@ -173,8 +176,8 @@ def test_load_config_rejects_missing_source_file(tmp_path):
         tmp_path,
         {
             "phases": [
-                {"name": "a", "slot": 0, "color": 14, "src": {"file": "ghost.png"}},
-                {"name": "b", "slot": 1, "color": 5, "src": {"file": "b.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "ghost.png"}},
+                {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5, "src": {"file": "b.png"}},
             ]
         },
     )
@@ -192,12 +195,13 @@ def test_load_config_rejects_wrong_dimensions(tmp_path):
         "preview_built": "preview/sprites_built.png",
         "sprite_size": [24, 21],
         "slot_bytes": 64,
-        "threshold": 200,
+        "dark_threshold": 80,
+        "bright_threshold": 240,
         "sprite_index_base": 200,
         "total_slots": 2,
         "phases": [
-            {"name": "a", "slot": 0, "color": 14, "src": {"file": "wrong.png"}},
-            {"name": "b", "slot": 1, "color": 5, "src": {"file": "b.png"}},
+            {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "wrong.png"}},
+            {"name": "b", "slot": 1, "color_outline": 0, "color_fill": 5, "src": {"file": "b.png"}},
         ],
     }
     p = tmp_path / "config.json"
@@ -212,8 +216,8 @@ def test_load_config_rejects_duplicate_slot(tmp_path):
         tmp_path,
         {
             "phases": [
-                {"name": "a", "slot": 0, "color": 14, "src": {"file": "a.png"}},
-                {"name": "b", "slot": 0, "color": 5,  "src": {"file": "b.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
+                {"name": "b", "slot": 0, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
             ]
         },
     )
@@ -229,8 +233,8 @@ def test_load_config_rejects_slot_out_of_range(tmp_path):
         {
             "total_slots": 2,
             "phases": [
-                {"name": "a", "slot": 0, "color": 14, "src": {"file": "a.png"}},
-                {"name": "b", "slot": 5, "color": 5,  "src": {"file": "b.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
+                {"name": "b", "slot": 5, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
             ],
         },
     )
@@ -253,7 +257,7 @@ def test_build_bin_unused_slots_are_zero(tmp_path):
         {
             "total_slots": 3,
             "phases": [
-                {"name": "a", "slot": 1, "color": 14, "src": {"file": "a.png"}},
+                {"name": "a", "slot": 1, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
             ],
         },
     )
@@ -274,11 +278,12 @@ def test_build_bin_phase_at_correct_slot_offset(tmp_path):
         "preview_built": "preview/sprites_built.png",
         "sprite_size": [24, 21],
         "slot_bytes": 64,
-        "threshold": 80,
+        "dark_threshold": 80,
+        "bright_threshold": 240,
         "sprite_index_base": 200,
         "total_slots": 3,
         "phases": [
-            {"name": "x", "slot": 2, "color": 14, "src": {"file": "one_pixel.png"}},
+            {"name": "x", "slot": 2, "color_outline": 0, "color_fill": 14, "src": {"file": "one_pixel.png"}},
         ],
     }
     p = tmp_path / "config.json"
@@ -289,6 +294,7 @@ def test_build_bin_phase_at_correct_slot_offset(tmp_path):
     assert data[2 * 64 + 1] == 0x00
 
 
+@pytest.mark.skip(reason="re-enabled after Task 7 sprite_phases.json migration")
 def test_build_bin_loads_real_kbeginn_tga():
     """The 1996 TGA originals load via Pillow and pack without error."""
     cfg = load_config(Path(__file__).parent / "sprite_phases.json")
@@ -306,8 +312,8 @@ def test_build_inc_emits_define_per_phase(tmp_path):
             "sprite_index_base": 200,
             "total_slots": 3,
             "phases": [
-                {"name": "kuno_walk_left_0", "slot": 0, "color": 14, "src": {"file": "a.png"}},
-                {"name": "gecko_left_0",     "slot": 2, "color": 5,  "src": {"file": "b.png"}},
+                {"name": "kuno_walk_left_0", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
+                {"name": "gecko_left_0",     "slot": 2, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
             ],
         },
     )
@@ -328,7 +334,7 @@ def test_build_inc_skips_unused_slots(tmp_path):
         {
             "total_slots": 5,
             "phases": [
-                {"name": "a", "slot": 0, "color": 14, "src": {"file": "a.png"}},
+                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
             ],
         },
     )

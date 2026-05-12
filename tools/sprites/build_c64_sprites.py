@@ -30,7 +30,8 @@ class SlotOutOfRangeError(ValueError):
 class Phase:
     name: str
     slot: int
-    color: int
+    color_outline: int
+    color_fill: int
     src: FileSource
 
 
@@ -41,7 +42,8 @@ class Config:
     preview_built: Path
     sprite_size: tuple[int, int]
     slot_bytes: int
-    threshold: int
+    dark_threshold: int
+    bright_threshold: int
     sprite_index_base: int
     total_slots: int
     phases: tuple[Phase, ...]
@@ -86,7 +88,8 @@ def load_config(config_path: Path) -> Config:
             Phase(
                 name=p["name"],
                 slot=p["slot"],
-                color=p["color"],
+                color_outline=p["color_outline"],
+                color_fill=p["color_fill"],
                 src=FileSource(path=src_path),
             )
         )
@@ -110,7 +113,8 @@ def load_config(config_path: Path) -> Config:
         preview_built=(base_dir / raw["preview_built"]).resolve(),
         sprite_size=sprite_size,
         slot_bytes=raw["slot_bytes"],
-        threshold=raw["threshold"],
+        dark_threshold=raw["dark_threshold"],
+        bright_threshold=raw["bright_threshold"],
         sprite_index_base=raw["sprite_index_base"],
         total_slots=total,
         phases=tuple(phases_list),
@@ -163,14 +167,12 @@ def build_bin(cfg: Config) -> bytes:
     """Pack every phase's source file and produce total_slots * slot_bytes bytes.
 
     Transitional layout until Task 4 introduces the two-bank split: only
-    the outline block is written, using cfg.threshold as dark_threshold
-    and 240 as a temporary bright_threshold ceiling. Fill bytes are
-    discarded for now.
+    the outline block is written. Fill bytes are discarded for now.
     """
     out = bytearray(cfg.total_slots * cfg.slot_bytes)
     for phase in cfg.phases:
         img = Image.open(phase.src.path).convert("RGBA")
-        outline, _ = pack_phase_pair(img, cfg.threshold, 240)
+        outline, _ = pack_phase_pair(img, cfg.dark_threshold, cfg.bright_threshold)
         offset = phase.slot * cfg.slot_bytes
         out[offset : offset + cfg.slot_bytes] = outline
     return bytes(out)
@@ -228,7 +230,7 @@ def render_preview(cfg: Config, bin_data: bytes) -> Image.Image:
         offset = phase.slot * cfg.slot_bytes
         slot_bytes = bin_data[offset : offset + cfg.slot_bytes]
         sprite_img = Image.new("RGB", (pw, ph_h), (255, 255, 255))
-        fg = C64_PALETTE.get(phase.color, (0, 0, 0))
+        fg = C64_PALETTE.get(phase.color_fill, (0, 0, 0))
         for y in range(ph_h):
             for x in range(pw):
                 byte = slot_bytes[y * 3 + x // 8]
