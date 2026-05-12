@@ -1,4 +1,4 @@
-"""Convert kuno-sprites.png into C64 hardware sprite data."""
+"""Convert per-phase 24x21 image files into C64 hardware sprite data."""
 from __future__ import annotations
 
 import json
@@ -14,8 +14,8 @@ class FileSource:
     path: Path
 
 
-class PhaseOutOfBoundsError(ValueError):
-    """A phase position is outside the source image."""
+class ConfigError(ValueError):
+    """The sprite_phases.json schema is malformed."""
 
 
 class DuplicateSlotError(ValueError):
@@ -30,13 +30,12 @@ class SlotOutOfRangeError(ValueError):
 class Phase:
     name: str
     slot: int
-    pos: tuple[int, int]
     color: int
+    src: FileSource
 
 
 @dataclass(frozen=True)
 class Config:
-    source_image: Path
     output_bin: Path
     output_inc: Path
     preview_built: Path
@@ -49,33 +48,52 @@ class Config:
 
 
 def load_config(config_path: Path) -> Config:
-    """Load and validate a sprite_phases.json from disk.
+    """Load and validate sprite_phases.json from disk.
 
-    Paths in the JSON are resolved relative to the config file's directory.
-    Raises DuplicateSlotError, SlotOutOfRangeError, FileNotFoundError.
+    Per-phase src.file paths are resolved relative to the config file's
+    directory. Each source is eagerly validated for existence and 24x21
+    dimensions, so no byte is packed until all sources are known good.
+
+    Raises ConfigError, FileNotFoundError, ValueError, DuplicateSlotError,
+    SlotOutOfRangeError.
     """
     config_path = Path(config_path)
     with config_path.open("r", encoding="utf-8") as f:
         raw = json.load(f)
 
     base_dir = config_path.parent
-    source = (base_dir / raw["source_image"]).resolve()
-    if not source.exists():
-        raise FileNotFoundError(f"source_image not found: {source}")
+    sprite_size = tuple(raw["sprite_size"])
 
-    phases = tuple(
-        Phase(
-            name=p["name"],
-            slot=p["slot"],
-            pos=tuple(p["pos"]),
-            color=p["color"],
+    phases_list: list[Phase] = []
+    for p in raw["phases"]:
+        src = p.get("src")
+        if not isinstance(src, dict) or "file" not in src:
+            raise ConfigError(
+                f"phase {p.get('name')!r} requires src.file in sprite_phases.json"
+            )
+        src_path = (base_dir / src["file"]).resolve()
+        if not src_path.exists():
+            raise FileNotFoundError(
+                f"phase {p['name']!r} src.file not found: {src_path}"
+            )
+        with Image.open(src_path) as probe:
+            if probe.size != sprite_size:
+                raise ValueError(
+                    f"phase {p['name']!r} src {src_path} has size {probe.size}, "
+                    f"expected {sprite_size}"
+                )
+        phases_list.append(
+            Phase(
+                name=p["name"],
+                slot=p["slot"],
+                color=p["color"],
+                src=FileSource(path=src_path),
+            )
         )
-        for p in raw["phases"]
-    )
 
     total = raw["total_slots"]
     seen_slots: dict[int, str] = {}
-    for ph in phases:
+    for ph in phases_list:
         if ph.slot >= total or ph.slot < 0:
             raise SlotOutOfRangeError(
                 f"phase {ph.name!r} has slot {ph.slot}, must be in [0, {total})"
@@ -87,16 +105,15 @@ def load_config(config_path: Path) -> Config:
         seen_slots[ph.slot] = ph.name
 
     return Config(
-        source_image=source,
         output_bin=(base_dir / raw["output_bin"]).resolve(),
         output_inc=(base_dir / raw["output_inc"]).resolve(),
         preview_built=(base_dir / raw["preview_built"]).resolve(),
-        sprite_size=tuple(raw["sprite_size"]),
+        sprite_size=sprite_size,
         slot_bytes=raw["slot_bytes"],
         threshold=raw["threshold"],
         sprite_index_base=raw["sprite_index_base"],
         total_slots=total,
-        phases=phases,
+        phases=tuple(phases_list),
     )
 
 
@@ -121,21 +138,11 @@ def pack_phase(image: Image.Image, threshold: int) -> bytes:
 
 
 def build_bin(cfg: Config) -> bytes:
-    """Read source PNG and produce total_slots * slot_bytes of sprite data."""
-    src = Image.open(cfg.source_image).convert("RGBA")
-    sw, sh = src.size
-    pw, ph = cfg.sprite_size
-
+    """Pack every phase's source file and produce total_slots * slot_bytes bytes."""
     out = bytearray(cfg.total_slots * cfg.slot_bytes)
     for phase in cfg.phases:
-        x, y = phase.pos
-        if x < 0 or y < 0 or x + pw > sw or y + ph > sh:
-            raise PhaseOutOfBoundsError(
-                f"phase {phase.name!r} at ({x},{y}) extends past image "
-                f"({sw}x{sh}) with sprite_size ({pw}x{ph})"
-            )
-        crop = src.crop((x, y, x + pw, y + ph))
-        packed = pack_phase(crop, cfg.threshold)
+        img = Image.open(phase.src.path).convert("RGBA")
+        packed = pack_phase(img, cfg.threshold)
         offset = phase.slot * cfg.slot_bytes
         out[offset : offset + cfg.slot_bytes] = packed
     return bytes(out)
@@ -154,24 +161,23 @@ def build_inc(cfg: Config) -> str:
     return "\n".join(lines) + "\n"
 
 
-# C64-Farbpalette (Approximationen der Hardware-Farben für die Vorschau)
 C64_PALETTE = {
-    0:  (0, 0, 0),         # black
-    1:  (255, 255, 255),   # white
-    2:  (136, 0, 0),       # red
-    3:  (170, 255, 238),   # cyan
-    4:  (204, 68, 204),    # purple
-    5:  (0, 204, 85),      # green
-    6:  (0, 0, 170),       # blue
-    7:  (238, 238, 119),   # yellow
-    8:  (221, 136, 85),    # orange
-    9:  (102, 68, 0),      # brown
-    10: (255, 119, 119),   # light red
-    11: (51, 51, 51),      # dark grey
-    12: (119, 119, 119),   # mid grey
-    13: (170, 255, 102),   # light green
-    14: (0, 136, 255),     # light blue
-    15: (187, 187, 187),   # light grey
+    0:  (0, 0, 0),
+    1:  (255, 255, 255),
+    2:  (136, 0, 0),
+    3:  (170, 255, 238),
+    4:  (204, 68, 204),
+    5:  (0, 204, 85),
+    6:  (0, 0, 170),
+    7:  (238, 238, 119),
+    8:  (221, 136, 85),
+    9:  (102, 68, 0),
+    10: (255, 119, 119),
+    11: (51, 51, 51),
+    12: (119, 119, 119),
+    13: (170, 255, 102),
+    14: (0, 136, 255),
+    15: (187, 187, 187),
 }
 
 
