@@ -372,39 +372,38 @@ def test_build_bin_loads_real_kbeginn_tga():
     assert any(b != 0 for b in spawn_slot[:63]), "spawn_0 TGA produced empty sprite"
 
 
-def test_build_inc_emits_define_per_phase(tmp_path):
+def test_build_inc_emits_outline_and_fill_per_phase(tmp_path):
     cfg_path = _write_config(
         tmp_path,
         {
             "sprite_index_base": 200,
             "total_slots": 6,
             "phases": [
-                {"name": "kuno_walk_left_0", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
-                {"name": "gecko_left_0",     "slot": 2, "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
+                {"name": "kuno_walk_left_0", "slot": 0,
+                 "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
+                {"name": "gecko_left_0", "slot": 1,
+                 "color_outline": 0, "color_fill": 5,  "src": {"file": "b.png"}},
             ],
         },
     )
     cfg = load_config(cfg_path)
     text = build_inc(cfg)
-    lines = text.splitlines()
-    assert any(line.startswith("// AUTO-GENERATED") for line in lines)
-    assert "@define KUNO_WALK_LEFT_0" in text
-    assert "@define GECKO_LEFT_0" in text
-    assert "@define KUNO_WALK_LEFT_0  200" in text
-    assert "@define GECKO_LEFT_0      202" in text
+    assert any(line.startswith("// AUTO-GENERATED") for line in text.splitlines())
+    assert "@define KUNO_WALK_LEFT_0_OUTLINE" in text
+    assert "@define KUNO_WALK_LEFT_0_FILL" in text
+    assert "@define GECKO_LEFT_0_OUTLINE" in text
+    assert "@define GECKO_LEFT_0_FILL" in text
+    # 2 phases * 2 defines = 4 @define lines
+    assert text.count("@define") == 4
 
 
-def test_build_inc_skips_unused_slots(tmp_path):
-    """Empty slots produce no @define."""
-    cfg_path = _write_config(
-        tmp_path,
-        {
-            "total_slots": 6,
-            "phases": [
-                {"name": "a", "slot": 0, "color_outline": 0, "color_fill": 14, "src": {"file": "a.png"}},
-            ],
-        },
-    )
+def test_build_inc_fill_offset_is_half_of_total_slots(tmp_path):
+    cfg_path = _write_config(tmp_path, {})  # total_slots=4, half=2
     cfg = load_config(cfg_path)
     text = build_inc(cfg)
-    assert text.count("@define") == 1
+    out_a = next(ln for ln in text.splitlines() if "A_OUTLINE" in ln)
+    fill_a = next(ln for ln in text.splitlines() if "A_FILL" in ln)
+    out_id = int(out_a.split()[-1])
+    fill_id = int(fill_a.split()[-1])
+    # half = total_slots / 2 = 2
+    assert fill_id - out_id == 2
