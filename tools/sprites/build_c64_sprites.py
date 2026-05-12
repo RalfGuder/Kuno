@@ -179,17 +179,22 @@ def pack_phase_pair(
 
 
 def build_bin(cfg: Config) -> bytes:
-    """Pack every phase's source file and produce total_slots * slot_bytes bytes.
+    """Pack every phase into two slot banks of the same size.
 
-    Transitional layout until Task 4 introduces the two-bank split: only
-    the outline block is written. Fill bytes are discarded for now.
+    Layout: lower bank holds outline blocks (one per slot), upper bank
+    holds fill blocks at the same slot offsets. Slots without a phase
+    stay zero in both banks.
     """
     out = bytearray(cfg.total_slots * cfg.slot_bytes)
+    half = cfg.total_slots // 2
+    bank_offset = half * cfg.slot_bytes
     for phase in cfg.phases:
         img = Image.open(phase.src.path).convert("RGBA")
-        outline, _ = pack_phase_pair(img, cfg.dark_threshold, cfg.bright_threshold)
-        offset = phase.slot * cfg.slot_bytes
-        out[offset : offset + cfg.slot_bytes] = outline
+        outline, fill = pack_phase_pair(img, cfg.dark_threshold, cfg.bright_threshold)
+        out_off = phase.slot * cfg.slot_bytes
+        out[out_off : out_off + cfg.slot_bytes] = outline
+        fill_off = bank_offset + phase.slot * cfg.slot_bytes
+        out[fill_off : fill_off + cfg.slot_bytes] = fill
     return bytes(out)
 
 

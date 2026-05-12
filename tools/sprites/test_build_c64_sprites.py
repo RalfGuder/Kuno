@@ -322,31 +322,43 @@ def test_build_bin_unused_slots_are_zero(tmp_path):
     assert data[128:192] == bytes(64)
 
 
-def test_build_bin_phase_at_correct_slot_offset(tmp_path):
-    """A dark pixel at (1,0) of phase slot=2 lands at byte 2*64."""
+def test_build_bin_outline_lands_in_lower_bank(tmp_path):
+    """A dark pixel of phase slot=1 lands at byte 1*64 in the lower bank."""
     img = Image.new("RGBA", (24, 21), (255, 255, 255, 0))
     img.putpixel((1, 0), (0, 0, 0, 255))
-    img.save(tmp_path / "one_pixel.png")
-    raw = {
-        "output_bin": "kuno_sprites.bin",
-        "output_inc": "kuno_sprites.inc",
-        "preview_built": "preview/sprites_built.png",
-        "sprite_size": [24, 21],
-        "slot_bytes": 64,
-        "dark_threshold": 80,
-        "bright_threshold": 240,
-        "sprite_index_base": 200,
-        "total_slots": 6,
-        "phases": [
-            {"name": "x", "slot": 2, "color_outline": 0, "color_fill": 14, "src": {"file": "one_pixel.png"}},
-        ],
-    }
-    p = tmp_path / "config.json"
-    p.write_text(json.dumps(raw))
-    cfg = load_config(p)
-    data = build_bin(cfg)
-    assert data[2 * 64] == 0x40
-    assert data[2 * 64 + 1] == 0x00
+    img.save(tmp_path / "dark.png")
+    cfg = _write_config(
+        tmp_path,
+        {"total_slots": 4,
+         "phases": [
+             {"name": "x", "slot": 1,
+              "color_outline": 0, "color_fill": 14,
+              "src": {"file": "dark.png"}},
+         ]},
+    )
+    data = build_bin(load_config(cfg))
+    assert data[1 * 64] == 0x40
+    # nothing in upper bank for this phase
+    assert data[(2 + 1) * 64] == 0x00
+
+
+def test_build_bin_fill_lands_in_upper_bank(tmp_path):
+    """A mid-bright pixel of phase slot=1 lands at byte (half+1)*64."""
+    img = Image.new("RGBA", (24, 21), (255, 255, 255, 0))
+    img.putpixel((1, 0), (150, 150, 150, 255))
+    img.save(tmp_path / "mid.png")
+    cfg = _write_config(
+        tmp_path,
+        {"total_slots": 4,
+         "phases": [
+             {"name": "x", "slot": 1,
+              "color_outline": 0, "color_fill": 14,
+              "src": {"file": "mid.png"}},
+         ]},
+    )
+    data = build_bin(load_config(cfg))
+    assert data[1 * 64] == 0x00            # outline bank slot 1 empty
+    assert data[(2 + 1) * 64] == 0x40      # fill bank slot 1 (half=2)
 
 
 @pytest.mark.skip(reason="re-enabled after Task 7 sprite_phases.json migration")
